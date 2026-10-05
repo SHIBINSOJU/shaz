@@ -10,6 +10,9 @@ const {
 } = require('discord.js');
 const configService = require('../../../core/configService');
 
+// In-memory cooldown tracker: key `${channelId}:${userId}` -> timestamp (ms)
+const lastTriggered = new Map();
+
 function getMinecraftConfig() {
     const raw = configService.get('minecraft', {}) || {};
     const ipResp = raw.ipResponse || raw.ip_response || {};
@@ -28,6 +31,8 @@ function getMinecraftConfig() {
         serverName: raw.serverName || 'RISE SMP',
         accentColor: accent,
         ipResponse: {
+            enabled: ipResp.enabled ?? true,
+            cooldownSeconds: Number(ipResp.cooldownSeconds ?? ipResp.cooldown?.seconds ?? 5),
             java: {
                 address: String(java.address || 'risesmp.online').trim(),
                 port: Number(java.port ?? 25890)
@@ -40,6 +45,79 @@ function getMinecraftConfig() {
             }
         }
     };
+}
+
+/**
+ * Per-channel / per-user cooldown so repeated keyword triggers cannot flood
+ * the channel with prompts. Returns true when allowed.
+ */
+function checkCooldown(channelId, userId, cooldownSeconds) {
+    const key = `${channelId}:${userId}`;
+    const now = Date.now();
+    const last = lastTriggered.get(key) || 0;
+    const cooldownMs = (cooldownSeconds > 0 ? cooldownSeconds : 5) * 1000;
+
+    if (now - last < cooldownMs) {
+        return false;
+    }
+
+    lastTriggered.set(key, now);
+
+    if (lastTriggered.size > 500) {
+        for (const [k, time] of lastTriggered.entries()) {
+            if (now - time > 60000) lastTriggered.delete(k);
+        }
+    }
+    return true;
+}
+
+/**
+ * Detects if a message is asking for or contains the Minecraft server IP.
+ * Returns { matched: boolean, edition: 'all' | 'java' | 'bedrock' }
+ */
+function detectIpQuery(text) {
+    if (!text || typeof text !== 'string') return { matched: false };
+    const clean = text.toLowerCase().trim();
+
+    if (clean.includes('risesmp.online')) {
+        return { matched: true, edition: 'all' };
+    }
+
+    const javaPatterns = [
+        /\bjava\s+(?:server\s+)?(?:ip|port|address)\b/i,
+        /\b(?:what(?:'s|\s+is)?\s+(?:the\s+)?)?java\s+ip\??$/i,
+        /\bjava\s+edition\s+(?:ip|port|address)\b/i,
+        /\bip\s+(?:for\s+)?java\b/i
+    ];
+    if (javaPatterns.some(p => p.test(clean))) {
+        return { matched: true, edition: 'java' };
+    }
+
+    const bedrockPatterns = [
+        /\b(?:bedrock|pocket\s+edition|pe|mobile)\s+(?:server\s+)?(?:ip|port|address)\b/i,
+        /\b(?:what(?:'s|\s+is)?\s+(?:the\s+)?)?bedrock\s+ip\??$/i,
+        /\bbedrock\s+edition\s+(?:ip|port|address)\b/i,
+        /\bip\s+(?:for\s+)?bedrock\b/i,
+        /\bbedrock\s+port\b/i
+    ];
+    if (bedrockPatterns.some(p => p.test(clean))) {
+        return { matched: true, edition: 'bedrock' };
+    }
+
+    const generalPatterns = [
+        /\b(?:server|minecraft|mc)\s+ip\b/i,
+        /\bip\s+(?:of\s+the\s+server|for\s+the\s+server|to\s+join)\b/i,
+        /\b(?:what(?:'s|\s+is)?|drop|give|send|tell\s+me)\s+(?:the\s+)?(?:server\s+)?(?:ip|address)\b/i,
+        /\bhow\s+(?:to|do\s+i|can\s+i)\s+join\b/i,
+        /\bserver\s+address\b/i,
+        /^(?:what(?:'s|\s+is)?\s+)?ip\??$/i,
+        /^(?:server\s*)?ip\??$/i
+    ];
+    if (generalPatterns.some(p => p.test(clean))) {
+        return { matched: true, edition: 'all' };
+    }
+
+    return { matched: false };
 }
 
 /** `risesmp.online:25890` (port only appended when it differs from the default). */
@@ -122,7 +200,30 @@ function buildIpResponse(config, edition = 'all') {
     };
 }
 
+/**
+ * The public keyword trigger. Contains NO address — only the announcement and
+ * the edition buttons. The IP itself is rendered exclusively by the ephemeral
+ * mc:ip:* interaction reply, so the channel never sees it.
+ */
+function buildIpPrompt(config, edition = 'all', requesterName = '') {
+    const safeName = String(requesterName).replace(/[*_`~<>\\@]/g, '').trim();
+    const who = safeName ? `**${safeName}** asked for the server IP — t` : 'T';
+    const container = new ContainerBuilder().setAccentColor(config.accentColor);
+    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
+        `## 🎮 ${config.serverName}\n-# 🔒 ${who}ap a button below — the address is shown privately, only you will see it.`
+    ));
+
+    return {
+        flags: MessageFlags.IsComponentsV2,
+        components: [container, buildIpRow(edition)],
+        allowedMentions: NO_MENTIONS
+    };
+}
+
 module.exports = {
     getMinecraftConfig,
-    buildIpResponse
+    checkCooldown,
+    detectIpQuery,
+    buildIpResponse,
+    buildIpPrompt
 };

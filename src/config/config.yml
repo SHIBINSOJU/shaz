@@ -234,17 +234,18 @@ minecraft:
   accentColor: "#5865F2"
 
   ipResponse:
-    # The server address is ONLY ever delivered through the ephemeral /serverip
-    # response and its buttons. Nothing is posted publicly, and there is no
-    # keyword auto-responder anymore.
+    enabled: true        # Public, IP-free trigger prompt when someone asks for the IP;
+                         # the address itself is only ever sent ephemerally via the
+                         # buttons or /serverip.
+    cooldownSeconds: 5   # Anti-spam: at most one public prompt per user/channel in this window
 
     java:
       address: "risesmp.online"
-      port: 25890        # Shown as risesmp.online:25890
+      port: 25890        # Java (TCP) port — always shown as risesmp.online:25890
 
     bedrock:
       address: "risesmp.online"
-      port: "19132"      # Mirror of the bedrock port in your Geyser configuration
+      port: "25890"      # Mirror of the bedrock port in your Geyser configuration
                          # (geyser.yml -> bedrock.port). This project reads no
                          # Geyser file directly, so keep this value in sync with
                          # your server; it is the single source of truth here.

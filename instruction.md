@@ -140,7 +140,7 @@ Interactive 15-minute session that builds a Components V2 message (title, descri
 
 ### 🎮 Minecraft (`/serverip`)
 - `/serverip [edition: all|java|bedrock]` — **ephemeral** Components V2 container with the connection addresses (Java `risesmp.online:25890`, Bedrock address + the port configured under `minecraft.ipResponse.bedrock.port`).
-- **No keyword auto-responder**: earlier versions detected phrases like `ip`, `server ip`, `how to join` in `messageCreate` and posted a button prompt publicly. That behavior is removed — a `messageCreate` event cannot reply ephemerally, so any public prompt risks leaking/spamming the channel. Typing `ip` in a channel now produces nothing; `/serverip` is the only way to fetch the address. Every `mc:ip:*` button (and `/serverip`) answers **ephemeral**, so the IP never appears in the channel.
+- **Keyword trigger (public, IP-free)**: `messageCreate` detects phrases like `ip`, `server ip`, `how to join`, `java ip`, `bedrock ip`, or `risesmp.online` and replies publicly with a compact Components V2 prompt that contains **no address** — only the announcement and the `[☕ Java IP] [🪨 Bedrock IP] [🎮 Both]` buttons (per-channel/user cooldown, bots/webhooks excluded, zero pings). Because a `messageCreate` event cannot send an ephemeral message, the address itself is rendered only by interactions: every `mc:ip:*` button (and `/serverip`) answers **ephemeral**, so the IP never appears in the channel.
 
 ### ⚙️ Setup & Help
 - `/setup welcome-channel|welcome-toggle|welcome-bots|modlog-channel|modlog-toggle|view` — per-server MongoDB overrides (Manage Server only).
