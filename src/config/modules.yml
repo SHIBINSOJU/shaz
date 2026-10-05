@@ -1,0 +1,36 @@
+# Enable or disable modules here.
+# Disabled modules register NO commands, events, or components.
+# Adding a new module folder under src/modules/ + enabling it here is all
+# that is required — the core discovers it automatically.
+
+modules:
+  welcome: true
+  moderation: true
+  setup: true
+  antilink: true
+  embed: true
+  tickets: true
+  autorole: true
+  utility: true
+  management: true
+  personal: true
+  fun: true
+  automod: true
+
+  # Future modules (not implemented yet — keep disabled)
+  music: false
+  leveling: false
+  economy: false
+  games: false
+  giveaways: false
+  reactionroles: false
+  suggestions: false
+  polls: false
+  starboard: false
+  verification: false
+  tempvoice: false
+  reminders: false
+  birthdays: false
+  ai: false
+  minecraft: true
+  customcommands: false

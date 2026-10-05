@@ -1,0 +1,251 @@
+# Global bot configuration.
+# Values here act as defaults; per-guild overrides can be stored in MongoDB
+# (GuildSettings) and take priority when present. The /welcome panel writes
+# those same per-guild `welcome` overrides — it never introduces a second
+# welcome configuration.
+
+welcome:
+  enabled: true
+  channelId: "1429400332366254161"          # Channel ID for welcome messages ("" = system channel fallback)
+  welcomeBots: false     # Send welcome messages for bots too
+
+  title: ""                      # "" = no title line; the GIF itself is the welcome card
+  greeting: "## 👋 **{displaynameStyled}**\n-# ──────── ✦ ────────"   # styled username line below the GIF
+  description: "Jump in, explore, and have fun building amazing things with us!"   # 📝 the welcome message (/welcome “Edit Message”) — rendered as the
+                                 #    last line of the intro text ABOVE the welcome card
+  usernameInCard: true           # 🎨 the existing welcome card: bake the member's name into a copy of the
+                                 # GIF (inside the white card, under "Hullo!"). false = keep the greeting
+                                 # line below the GIF. Falls back to the greeting line automatically if
+                                 # compositing fails or gif.source is "url".
+  separatorEnabled: true         # ➖ divider lines inside the welcome container (not part of the card image)
+
+  accentColor: "#5865F2"
+
+  # Animated welcome GIF (main visual of the welcome message).
+  # 🖼️ This is the "thumbnail" the /welcome panel toggles: it governs the picture
+  # inside the message only. The welcome card is drawn from `path` regardless of
+  # this switch, so disabling the thumbnail never disables or alters the card.
+  # source: "url"  -> uses the http(s) url below
+  # source: "local" -> uploads the file at path (relative to project root)
+  # If disabled, missing, or invalid, the welcome is sent without the GIF.
+  gif:
+    enabled: true
+    source: "local"            # "url" or "local"
+    url: ""                    # e.g. "https://example.com/welcome.gif"
+    path: "./assets/welcome.gif"  # used when source is "local"
+
+  image:
+    enabled: true
+    url: ""              # Optional static banner image (fallback when no GIF is available)
+
+  footer:
+    enabled: true
+    text: "You are member #{membercount} — enjoy your stay!"
+
+moderation:
+  logs:
+    enabled: true
+    channelId: ""        # Channel ID for moderation logs ("" = logging disabled)
+
+antilink:
+  enabled: true          # Server-wide default; per-guild overrides via /antilink
+
+  deleteMessage: true   # Delete messages containing links
+  warnUser: true         # Send a temporary warning when a link is blocked
+  logAction: true        # Log blocked links via the moderation logging system
+
+  warningDeleteDelay: 5000   # ms before the warning message auto-deletes
+  warningCooldown: 10000     # ms of silence per user before sending another warning (rate limit)
+
+  exempt:
+    administrators: true    # Members with Administrator permission bypass Anti-Link
+    moderators: false        # Members with Moderate Members / Manage Messages bypass Anti-Link
+    bots: true               # Bot messages are never blocked
+    webhooks: true           # Webhook messages are never blocked
+
+automod:
+  enabled: true            # Master switch; per-guild override via /automod enable|disable
+
+  rules:
+    antiLink:
+      enabled: true        # Reuses the existing Anti-Link detection, config, and logging
+
+    antiInvite:
+      enabled: true        # Blocks discord.gg / discord.com/invite links
+
+    antiSpam:
+      enabled: true
+      maxMessages: 5       # messages ...
+      intervalSeconds: 5   # ... within this window
+      warnCooldownSeconds: 10  # one warning per user per rule per window
+
+    antiDuplicate:
+      enabled: true
+      maxDuplicates: 3     # repeats ...
+      intervalSeconds: 10  # ... within this window (messages under 4 chars ignored)
+
+    antiMentionSpam:
+      enabled: true
+      maxMentions: 5       # users + roles + @everyone/@here per message
+
+    antiCaps:
+      enabled: true
+      minimumLength: 10    # letters required before checking
+      percentage: 70       # uppercase percentage that triggers
+
+    wordFilter:
+      enabled: true
+      words: []            # file-level blocked words (whole-word, case-insensitive)
+
+    antiEveryone:
+      enabled: true        # Blocks @everyone/@here mentions
+
+    antiRaid:
+      enabled: true
+      joins: 5             # joins ...
+      intervalSeconds: 10  # ... within this window
+      lockdown: false      # when true, recent joiners are timed out (opt-in)
+      raidTimeoutMinutes: 10
+      alertCooldownSeconds: 300  # one raid alert per window (alerts, never mass-bans)
+
+    massSpam:
+      enabled: true
+      maxMessages: 10      # higher threshold than antiSpam ...
+      intervalSeconds: 10  # ... triggers a timeout instead of just a warning
+
+  actions:
+    deleteMessage: true
+    warnUser: true
+    warnDeleteDelay: 5000   # ms before the AutoMod warning message auto-deletes
+    timeout:
+      enabled: false       # master switch for timeouts (massSpam, raid lockdown)
+      duration: 300        # default timeout seconds
+
+  exemptions:
+    punishAdmins: false    # never punish the owner; punish admins only if true
+    roleIds: []            # exempt role IDs (per-guild additions via /automod whitelist)
+    channelIds: []         # exempt channel IDs
+    userIds: []            # exempt user IDs
+
+embedBuilder:
+  enabled: true             # Master switch for the /embed Components V2 builder
+
+  sessionTimeoutMs: 900000  # Builder sessions expire after 15 minutes
+
+  permissions:
+    administrator: true    # Require Administrator permission to use /embed (unless owner/allowed role below)
+
+  allowedRoleIds: []      # Extra roles allowed to USE /embed (owner + admins always allowed).
+                          # Role IDs as strings, e.g. - "123456789012345678".
+                          # Only owner/admins can change these via /embedconfig.
+
+tickets:
+  enabled: true             # Master switch for the ticket system
+
+  panel:
+    channelId: "1556666645802385573"           # Default channel for /ticket panel ("" = current channel)
+    title: "🎫 Support Center"
+    description: "Need help? Select a category below.\nOur staff will assist you shortly."
+
+  logs:
+    enabled: true
+    channelId: "1556666645802385573"   # Ticket log channel ("" = logging disabled)
+
+  maxOpenTicketsPerUser: 1  # Duplicate-ticket protection (0 = unlimited)
+  allowReclaim: false       # Allow a different staff member to take an already-claimed ticket
+  creatorCanClose: true     # Ticket creator may close their own ticket (staff always can)
+  creationCooldownMs: 30000 # Per-user cooldown between ticket creations (spam protection)
+
+  # MENTION POLICY: the welcome message mentions ONLY the ticket creator
+  # plus this global support role. "" = no global role ping (per-category
+  # staffRoleIds below are still mentioned). Never hardcode roles in code.
+  support_role_id: ""       # Global support role ID, e.g. "1556360796085293146"
+
+  naming:
+    format: "ticket-{username}"   # Tokens: {username} {category} {number}
+
+  close:
+    deleteImmediately: false  # false = archive (lock + optional move), true = delete channel on close
+    deleteDelayMs: 10000       # Wait before deleting when deleteImmediately is true
+    closedCategoryId: ""                      # Move closed tickets here ("" = stay in place)
+    lockOnClose: true          # Revoke Send Messages from the creator on close
+
+  categories:
+    # Categories are data-driven: add more keys (appeals, partnership, ...)
+    # without changing code. Each supports: name, description, emoji,
+    # categoryId (Discord category), staffRoleIds, accent (hex, optional).
+
+    general:
+      name: "General Support"
+      description: "Get help with general questions"
+      emoji: "🎫"
+      categoryId: "1494943911138033754"
+      staffRoleIds:
+        - "1480158114157428786"
+
+    bug:
+      name: "Player / Bug Report"
+      description: "Report a player or server bug"
+      emoji: "🐛"
+      categoryId: "1494945151712493618"
+      staffRoleIds:
+        - "1480158114157428786"
+
+    purchase:
+      name: "Purchase / Donation Support"
+      description: "Get help with purchases or donations"
+      emoji: "💰"
+      categoryId: "1494943911138033754"
+      staffRoleIds:
+        - "1480158114157428786"
+
+autorole:
+  enabled: false         # Disabled by default; enable per server via /autorole enable
+
+  roles: []              # Role IDs assigned automatically to new members
+
+  bots: false            # Whether bots also receive autoroles
+
+  delay: 0               # ms to wait before assigning (0 = immediately, non-blocking)
+
+  logs:
+    enabled: true        # Log assignments/failures to the moderation log channel
+
+management:
+  allowedRoleIds: []     # Extra roles allowed to use /say and /announce (owner + admins always allowed)
+
+polls:
+  enabled: true          # Master switch for /poll
+  channelId: ""          # Default channel for polls ("" = current channel)
+
+suggestions:
+  enabled: true          # Master switch for /suggest
+  channelId: ""          # Suggestion channel ("" = current channel)
+
+reminders:
+  enabled: true          # Master switch for /remind and /reminders
+
+afk:
+  enabled: true          # Master switch for /afk
+
+minecraft:
+  enabled: true          # Master switch for Minecraft module
+  serverName: "RISE SMP"
+  accentColor: "#5865F2"
+
+  ipResponse:
+    # The server address is ONLY ever delivered through the ephemeral /serverip
+    # response and its buttons. Nothing is posted publicly, and there is no
+    # keyword auto-responder anymore.
+
+    java:
+      address: "risesmp.online"
+      port: 25890        # Shown as risesmp.online:25890
+
+    bedrock:
+      address: "risesmp.online"
+      port: "19132"      # Mirror of the bedrock port in your Geyser configuration
+                         # (geyser.yml -> bedrock.port). This project reads no
+                         # Geyser file directly, so keep this value in sync with
+                         # your server; it is the single source of truth here.
+

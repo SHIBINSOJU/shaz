@@ -1,0 +1,25 @@
+{
+  "name": "shaz",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^18.0.5",
+    "gifwrap": "^0.10.1",
+    "jimp": "^0.22.12",
+    "mongoose": "^9.10.4",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
