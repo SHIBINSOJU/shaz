@@ -34,8 +34,8 @@ function getMinecraftConfig() {
             enabled: ipResp.enabled ?? true,
             cooldownSeconds: Number(ipResp.cooldownSeconds ?? ipResp.cooldown?.seconds ?? 5),
             java: {
-                address: String(java.address || 'risesmp.online').trim(),
-                port: Number(java.port ?? 25890)
+                // Java is displayed as a bare host — no port is read or shown.
+                address: String(java.address || 'risesmp.online').trim()
             },
             bedrock: {
                 address: String(bedrock.address || 'risesmp.online').trim(),
@@ -120,11 +120,9 @@ function detectIpQuery(text) {
     return { matched: false };
 }
 
-/** `risesmp.online:25890` (port only appended when it differs from the default). */
+/** Java is always shown as a bare host — never with a port. */
 function formatJavaAddress(config) {
-    const host = config.ipResponse.java.address;
-    const port = config.ipResponse.java.port;
-    return port && Number(port) !== 25565 ? `${host}:${port}` : host;
+    return config.ipResponse.java.address;
 }
 
 /** Address + configured Bedrock/Geyser port (never guessed — config.yml only). */

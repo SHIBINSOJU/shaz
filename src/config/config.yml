@@ -241,7 +241,6 @@ minecraft:
 
     java:
       address: "risesmp.online"
-      port: 25890        # Java (TCP) port — always shown as risesmp.online:25890
 
     bedrock:
       address: "risesmp.online"
