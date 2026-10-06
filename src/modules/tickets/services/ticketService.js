@@ -721,11 +721,13 @@ async function destroyTicket({ guild, member, ticket, config, deleteReason }) {
         if (!upload.ok) {
             const why = upload.error === 'no-log-channel'
                 ? '❌ Could not write to the ticket-log channel, so the ticket was NOT deleted. Please check log channel permissions and try again.'
-                : upload.error === 'attachment-missing'
-                    ? '❌ The transcript file did not upload to Discord, so the ticket was NOT deleted. Please try again.'
-                    : upload.error === 'missing-transcript'
-                        ? '❌ No transcript is available, so the ticket was NOT deleted.'
-                        : `❌ Transcript/log upload failed (${upload.error}), so the ticket was NOT deleted. Please try again.`;
+                : upload.error === 'missing-attach-permission'
+                    ? '❌ The bot is missing the **Attach Files** permission in the ticket-log channel, so the transcript could not be uploaded and the ticket was NOT deleted. Grant that permission and try again.'
+                    : upload.error === 'attachment-missing'
+                        ? '❌ The transcript file did not upload to Discord, so the ticket was NOT deleted. Please try again.'
+                        : upload.error === 'missing-transcript'
+                            ? '❌ No transcript is available, so the ticket was NOT deleted.'
+                            : `❌ Transcript/log upload failed (${upload.error}), so the ticket was NOT deleted. Please try again.`;
             logger.error(`Ticket #${ticket.number} deletion aborted (${upload.error}); channel kept.`);
             return { ok: false, error: why };
         }

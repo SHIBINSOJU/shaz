@@ -7,6 +7,7 @@ const {
     TextDisplayBuilder,
     SeparatorBuilder,
     SeparatorSpacingSize,
+    PermissionFlagsBits,
     MessageFlags
 } = require('discord.js');
 const fs = require('fs/promises');
@@ -131,24 +132,73 @@ async function cleanupTempFile(tmpPath) {
 }
 
 /**
+ * Can the bot actually attach files in this channel? A missing ATTACH_FILES
+ * permission (usually a channel/category override) is the single most common
+ * reason Discord posts the log text but silently keeps NO attachment.
+ * Returns true when permission is present OR cannot be determined (so we never
+ * block on a false negative), false only on a definite denial.
+ */
+function canAttachFiles(channel) {
+    try {
+        const me = channel?.guild?.members?.me;
+        if (!me) return true;
+        const perms = typeof channel.permissionsFor === 'function'
+            ? channel.permissionsFor(me)
+            : null;
+        if (!perms) return true;
+        return perms.has(PermissionFlagsBits.AttachFiles);
+    } catch {
+        return true;
+    }
+}
+
+/** First attachment that is genuinely usable (has a URL and non-zero size). */
+function extractUsableAttachment(message) {
+    if (!message?.attachments?.size) return null;
+    for (const attachment of message.attachments.values()) {
+        if (attachment?.url && (attachment.size ?? 0) > 0) return attachment;
+    }
+    return null;
+}
+
+/**
+ * Confirms an attachment really exists on a sent message. If the send response
+ * looks empty we re-fetch the message once from Discord, because a partial
+ * gateway/REST response can under-report attachments even when they were stored.
+ */
+async function verifyAttachment(channel, message) {
+    const direct = extractUsableAttachment(message);
+    if (direct) return { message, attachment: direct };
+    if (message?.id && typeof channel?.messages?.fetch === 'function') {
+        const refetched = await channel.messages.fetch(message.id).catch(() => null);
+        const second = extractUsableAttachment(refetched);
+        if (second) return { message: refetched, attachment: second };
+    }
+    return { message, attachment: null };
+}
+
+/**
  * Sends a V2 log payload WITH the transcript as a REAL Discord file
  * attachment (native download/open UI — never a filename text lookalike).
  *
  * Reliability contract:
- *  - Rejects an empty/non-Buffer transcript up front (that is exactly what
- *    makes Discord accept a message but store NO attachment).
+ *  - Rejects an empty/non-Buffer transcript up front.
  *  - Verifies the on-disk file exists and is readable before uploading.
+ *  - Pre-checks ATTACH_FILES so a permission problem is reported clearly
+ *    instead of masquerading as "Discord stored no attachment".
  *  - Attaches from the in-memory Buffer (not the temp path) so the multipart
  *    body never depends on a lazy re-read of the file at send time.
- *  - After sending, verifies the returned message actually carries an
- *    attachment WITH a URL and non-zero size.
- *  - Retries transient network errors and "message stored but no attachment"
- *    up to `attempts` times; 429 rate limits are waited out transparently by
- *    @discordjs/rest, so they never surface here.
+ *  - After sending, verifies the attachment is present, re-fetching the message
+ *    once if the send response looks empty.
+ *  - If the Components-V2 + file message still stores no attachment, retries
+ *    with a PLAIN file message (no V2 flag) — the most reliable attachment
+ *    path Discord offers — so the .html archive always lands.
+ *  - Retries transient network errors; 429 rate limits are waited out
+ *    transparently by @discordjs/rest, so they never surface here.
  *
- * Returns { ok: true, message, attachmentUrl } only when the attachment is
- * verified present. Otherwise { ok: false, error } so the caller KEEPS the
- * ticket channel instead of deleting history. Never throws.
+ * Returns { ok: true, message, attachmentUrl, viaFallback } only when the
+ * attachment is verified present. Otherwise { ok: false, error } so the caller
+ * KEEPS the ticket channel instead of deleting history. Never throws.
  */
 async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuffer, { attempts = 3 } = {}) {
     const name = String(filename || 'transcript.html');
@@ -163,6 +213,11 @@ async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuf
         return { ok: false, error: 'empty-transcript' };
     }
 
+    if (!canAttachFiles(channel)) {
+        logger.error(`Transcript upload aborted for ${name}: the bot is missing the "Attach Files" permission in the ticket-log channel (#${channel?.name || channel?.id || '?'}). Grant it and try again. Ticket channel kept.`);
+        return { ok: false, error: 'missing-attach-permission' };
+    }
+
     let tmpPath = null;
     try {
         tmpPath = await writeVerifiedTempTranscript(fileBuffer);
@@ -172,16 +227,17 @@ async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuf
         return { ok: false, error: 'transcript-file-unreadable' };
     }
 
+    const makeAttachment = () => new AttachmentBuilder(fileBuffer, {
+        name,
+        description: `Ticket transcript ${name}`.slice(0, 200)
+    });
+
     try {
         for (let attempt = 1; attempt <= attempts; attempt++) {
-            const attachment = new AttachmentBuilder(fileBuffer, {
-                name,
-                description: `Ticket transcript ${name}`.slice(0, 200)
-            });
-
+            // PRIMARY: the Components-V2 log container carrying the file.
             let message;
             try {
-                message = await channel.send({ ...payload, files: [attachment], allowedMentions: NO_MENTIONS });
+                message = await channel.send({ ...payload, files: [makeAttachment()], allowedMentions: NO_MENTIONS });
             } catch (error) {
                 const transient = isTransientError(error);
                 logger.error(`Transcript upload send failed for ${name} (attempt ${attempt}/${attempts}, transient=${transient}): ${error.message}`);
@@ -192,19 +248,32 @@ async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuf
                 continue;
             }
 
-            const attached = message?.attachments?.size
-                ? [...message.attachments.values()][0]
-                : null;
-            if (attached && attached.url && (attached.size ?? 0) > 0) {
-                logger.info(`Transcript uploaded: ${name} (message ${message.id}, ${attached.size} bytes) -> ${attached.url}`);
-                return { ok: true, message, attachmentUrl: attached.url };
+            let verified = await verifyAttachment(channel, message);
+            if (verified.attachment) {
+                logger.info(`Transcript uploaded: ${name} (message ${message.id}, ${verified.attachment.size} bytes) -> ${verified.attachment.url}`);
+                return { ok: true, message: verified.message, attachmentUrl: verified.attachment.url, viaFallback: false };
             }
 
-            logger.warn(`Transcript upload attempt ${attempt}/${attempts} for ${name}: Discord accepted the message but stored no attachment.`);
+            // FALLBACK: some channels/servers drop the file when it rides on a
+            // Components-V2 message. Re-send as a plain file message — Discord's
+            // most reliable attachment path — so the archive still lands.
+            logger.warn(`Transcript upload attempt ${attempt}/${attempts} for ${name}: V2 message stored no attachment (message ${message?.id}). Retrying as a plain file message.`);
+            try {
+                const plain = await channel.send({ content: `📄 ${name}`, files: [makeAttachment()], allowedMentions: NO_MENTIONS });
+                const plainVerified = await verifyAttachment(channel, plain);
+                if (plainVerified.attachment) {
+                    logger.info(`Transcript uploaded via plain-file fallback: ${name} (message ${plain.id}, ${plainVerified.attachment.size} bytes) -> ${plainVerified.attachment.url}`);
+                    return { ok: true, message: plainVerified.message, attachmentUrl: plainVerified.attachment.url, viaFallback: true };
+                }
+                logger.error(`Transcript fallback for ${name} also stored no attachment (message ${plain?.id}, attachments=${plain?.attachments?.size ?? 0}, flags=${plain?.flags?.bitfield ?? plain?.flags}).`);
+            } catch (error) {
+                logger.error(`Transcript fallback send failed for ${name}: ${error.message}`);
+            }
+
             if (attempt < attempts) await sleep(1000 * attempt);
         }
 
-        logger.error(`Transcript upload failed for ${name}: Discord stored no attachment after ${attempts} attempts. Ticket channel kept.`);
+        logger.error(`Transcript upload failed for ${name}: Discord stored no attachment after ${attempts} attempts (both V2 and plain-file sends). Ticket channel kept.`);
         return { ok: false, error: 'attachment-missing' };
     } catch (error) {
         logger.error(`Transcript upload failed for ${name}: ${error.message}`);
@@ -258,7 +327,7 @@ async function logTicketWithFile(guild, { title, accent = 0x5865F2, fields = [],
         }
         const payload = buildInfoContainer({ header: title, fields, accent, footer: `<t:${Math.floor(Date.now() / 1000)}:F>` });
         const sent = await sendPayloadWithTranscriptFile(channel, payload, filename, fileBuffer);
-        if (sent.ok) {
+        if (sent.ok && !sent.viaFallback) {
             await addViewTranscriptButton(sent.message, payload, sent.attachmentUrl);
         }
         return sent;
@@ -340,7 +409,7 @@ async function logTicketDeletedWithTranscript(guild, data) {
         }
         const payload = buildDeletedLogPayload(data);
         const sent = await sendPayloadWithTranscriptFile(channel, payload, data.filename, data.fileBuffer);
-        if (sent.ok) {
+        if (sent.ok && !sent.viaFallback) {
             await addViewTranscriptButton(sent.message, payload, sent.attachmentUrl);
         }
         return sent;
