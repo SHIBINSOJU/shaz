@@ -13,6 +13,106 @@ const configService = require('../../../core/configService');
 // In-memory cooldown tracker: key `${channelId}:${userId}` -> timestamp (ms)
 const lastTriggered = new Map();
 
+// Recently processed Discord message IDs. discord.js can redeliver the same
+// messageCreate after a reconnect/resume, and both deliveries pass the
+// cooldown check — without this guard one `ip` message yields two DMs.
+const seenMessages = new Map(); // messageId -> timestamp (ms)
+const SEEN_TTL_MS = 120000;
+const SEEN_MAX = 1000;
+
+/**
+ * Returns true if this message was already handled (duplicate delivery).
+ * First call for an ID marks it seen and returns false.
+ */
+function alreadyProcessedMessage(messageId) {
+    if (!messageId) return false;
+    const now = Date.now();
+    if (seenMessages.has(messageId)) return true;
+    seenMessages.set(messageId, now);
+    if (seenMessages.size > SEEN_MAX) {
+        for (const [id, at] of seenMessages.entries()) {
+            if (now - at > SEEN_TTL_MS) seenMessages.delete(id);
+            if (seenMessages.size <= SEEN_MAX) break;
+        }
+    }
+    return false;
+}
+
+// One private IP result per user: userId -> { appId, token, messageId, at }.
+// Each button click would otherwise create a brand-new message; instead we
+// edit the existing result in place through the interaction webhook, so each
+// user ever sees exactly one.
+const ephemeralResults = new Map();
+const RESULT_TTL_MS = 14 * 60 * 1000; // interaction tokens live ~15 minutes
+const RESULT_MAX = 500;
+
+// Serializes concurrent button clicks from the same user so two rapid clicks
+// can't both pass the "no result yet" check and each post a new message.
+const resultLocks = new Map(); // userId -> Promise
+
+function withIpResultLock(userId, fn) {
+    const previous = resultLocks.get(userId) || Promise.resolve();
+    const next = previous.catch(() => {}).then(fn);
+    const tracked = next.catch(() => {});
+    resultLocks.set(userId, tracked);
+    tracked.finally(() => {
+        if (resultLocks.get(userId) === tracked) resultLocks.delete(userId);
+    });
+    return next;
+}
+
+function pruneResults(now = Date.now()) {
+    for (const [userId, entry] of ephemeralResults.entries()) {
+        if (now - entry.at > RESULT_TTL_MS) ephemeralResults.delete(userId);
+    }
+    if (ephemeralResults.size > RESULT_MAX) {
+        const oldest = [...ephemeralResults.entries()].sort((a, b) => a[1].at - b[1].at);
+        for (const [userId] of oldest.slice(0, ephemeralResults.size - RESULT_MAX)) {
+            ephemeralResults.delete(userId);
+        }
+    }
+}
+
+function rememberEphemeralResult(userId, appId, token, messageId) {
+    if (!userId || !token || !messageId) return;
+    pruneResults();
+    ephemeralResults.set(userId, { appId, token, messageId, at: Date.now() });
+}
+
+function clearEphemeralResult(userId) {
+    ephemeralResults.delete(userId);
+}
+
+/**
+ * Edits the user's existing private IP result via the original interaction
+ * webhook. Returns true when the single result was updated (no new message),
+ * false when there is nothing editable (caller should reply fresh instead).
+ */
+async function editEphemeralResult(userId, components) {
+    const entry = ephemeralResults.get(userId);
+    if (!entry) return false;
+    if (Date.now() - entry.at > RESULT_TTL_MS) {
+        ephemeralResults.delete(userId);
+        return false;
+    }
+    try {
+        const { WebhookClient } = require('discord.js');
+        const webhook = new WebhookClient({ id: entry.appId, token: entry.token });
+        try {
+            // Partial edit keeps the message's existing flags (still ephemeral);
+            // components are replaced wholesale with the new view.
+            await webhook.editMessage(entry.messageId, { components });
+        } finally {
+            webhook.destroy();
+        }
+        entry.at = Date.now();
+        return true;
+    } catch {
+        ephemeralResults.delete(userId);
+        return false;
+    }
+}
+
 function getMinecraftConfig() {
     const raw = configService.get('minecraft', {}) || {};
     const ipResp = raw.ipResponse || raw.ip_response || {};
@@ -199,23 +299,13 @@ function buildIpResponse(config, edition = 'all') {
 }
 
 /**
- * The public keyword trigger. Contains NO address — only the announcement and
- * the edition buttons. The IP itself is rendered exclusively by the ephemeral
- * mc:ip:* interaction reply, so the channel never sees it.
+ * The DM version of the IP panel. Same single Components V2 builder as the
+ * ephemeral reply — only the Ephemeral flag is dropped, because a bot-token
+ * channel/DM send cannot carry it and a DM is private by nature.
  */
-function buildIpPrompt(config, edition = 'all', requesterName = '') {
-    const safeName = String(requesterName).replace(/[*_`~<>\\@]/g, '').trim();
-    const who = safeName ? `**${safeName}** asked for the server IP — t` : 'T';
-    const container = new ContainerBuilder().setAccentColor(config.accentColor);
-    container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-        `## 🎮 ${config.serverName}\n-# 🔒 ${who}ap a button below — the address is shown privately, only you will see it.`
-    ));
-
-    return {
-        flags: MessageFlags.IsComponentsV2,
-        components: [container, buildIpRow(edition)],
-        allowedMentions: NO_MENTIONS
-    };
+function buildIpDirectMessage(config, edition = 'all') {
+    const payload = buildIpResponse(config, edition);
+    return { ...payload, flags: MessageFlags.IsComponentsV2 };
 }
 
 module.exports = {
@@ -223,5 +313,10 @@ module.exports = {
     checkCooldown,
     detectIpQuery,
     buildIpResponse,
-    buildIpPrompt
+    buildIpDirectMessage,
+    alreadyProcessedMessage,
+    withIpResultLock,
+    rememberEphemeralResult,
+    clearEphemeralResult,
+    editEphemeralResult
 };

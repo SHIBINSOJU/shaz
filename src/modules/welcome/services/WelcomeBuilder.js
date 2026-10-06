@@ -5,6 +5,8 @@ const {
     SeparatorSpacingSize,
     MediaGalleryBuilder,
     MediaGalleryItemBuilder,
+    SectionBuilder,
+    ThumbnailBuilder,
     AttachmentBuilder,
     MessageFlags
 } = require('discord.js');
@@ -19,6 +21,20 @@ function parseColor(color) {
         const parsed = parseInt(hex, 16);
         if (!Number.isNaN(parsed)) return parsed;
     }
+    return null;
+}
+
+/**
+ * Highest-quality URL for the joining member's own Discord avatar
+ * (size 4096; keeps animated avatars intact). Returns null only if the
+ * member object exposes no avatar method, so the welcome never breaks.
+ */
+function resolveAvatarURL(member) {
+    try {
+        const source = member?.user ?? member;
+        if (typeof source?.displayAvatarURL === 'function') return source.displayAvatarURL({ size: 4096 });
+        if (typeof member?.displayAvatarURL === 'function') return member.displayAvatarURL({ size: 4096 });
+    } catch { /* fall through — thumbnail is optional */ }
     return null;
 }
 
@@ -63,9 +79,21 @@ class WelcomeBuilder {
         const introMessage = config.description ? fillPlaceholders(config.description, member) : '';
         if (introMessage) introParts.push(introMessage);
 
-        container.addTextDisplayComponents(
+        // The intro text now lives inside a Section so the joining member's own
+        // Discord avatar can ride along as the message thumbnail (Components V2
+        // accessory). Only the surrounding wrapper changes — the text, mention
+        // and every other element below (card, GIF, separators, footer) are
+        // byte-for-byte identical to before.
+        const introSection = new SectionBuilder().addTextDisplayComponents(
             new TextDisplayBuilder().setContent(introParts.join('\n\n'))
         );
+        const avatarURL = resolveAvatarURL(member);
+        if (avatarURL) {
+            introSection.setThumbnailAccessory(
+                new ThumbnailBuilder().setURL(avatarURL)
+            );
+        }
+        container.addSectionComponents(introSection);
 
         // Main visual: the member's name baked into a copy of the GIF (inside the
         // white card), else the configured GIF as-is (url or local file), else the

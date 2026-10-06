@@ -6,7 +6,7 @@
 
 welcome:
   enabled: true
-  channelId: "1429400332366254161"          # Channel ID for welcome messages ("" = system channel fallback)
+  channelId: "1476620469288308861"          # Channel ID for welcome messages ("" = system channel fallback)
   welcomeBots: false     # Send welcome messages for bots too
 
   title: ""                      # "" = no title line; the GIF itself is the welcome card
@@ -143,13 +143,13 @@ tickets:
   enabled: true             # Master switch for the ticket system
 
   panel:
-    channelId: "1556666645802385573"           # Default channel for /ticket panel ("" = current channel)
+    channelId: "1478780183291887636"           # Default channel for /ticket panel ("" = current channel)
     title: "🎫 Support Center"
     description: "Need help? Select a category below.\nOur staff will assist you shortly."
 
   logs:
     enabled: true
-    channelId: "1556666645802385573"   # Ticket log channel ("" = logging disabled)
+    channelId: "1478779792072376511"   # Ticket log channel ("" = logging disabled)
 
   maxOpenTicketsPerUser: 1  # Duplicate-ticket protection (0 = unlimited)
   allowReclaim: false       # Allow a different staff member to take an already-claimed ticket
@@ -159,7 +159,7 @@ tickets:
   # MENTION POLICY: the welcome message mentions ONLY the ticket creator
   # plus this global support role. "" = no global role ping (per-category
   # staffRoleIds below are still mentioned). Never hardcode roles in code.
-  support_role_id: ""       # Global support role ID, e.g. "1556360796085293146"
+  support_role_id: "1480158114157428786"       # Global support role ID, e.g. "1556360796085293146"
 
   naming:
     format: "ticket-{username}"   # Tokens: {username} {category} {number}
@@ -234,10 +234,10 @@ minecraft:
   accentColor: "#5865F2"
 
   ipResponse:
-    enabled: true        # Public, IP-free trigger prompt when someone asks for the IP;
-                         # the address itself is only ever sent ephemerally via the
-                         # buttons or /serverip.
-    cooldownSeconds: 5   # Anti-spam: at most one public prompt per user/channel in this window
+    enabled: true        # DM the full IP panel when someone asks for the IP;
+                         # nothing is ever posted to the channel. /serverip and
+                         # the buttons answer ephemerally instead.
+    cooldownSeconds: 5   # Anti-spam: at most one DM per user/channel in this window
 
     java:
       address: "risesmp.online"

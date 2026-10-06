@@ -1,9 +1,9 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { getMinecraftConfig, buildIpResponse } = require('../services/minecraftService');
 
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('serverip')
+function buildIpCommandData(name) {
+    return new SlashCommandBuilder()
+        .setName(name)
         .setDescription('Get the Minecraft server connection address for Java and Bedrock.')
         .addStringOption(option =>
             option.setName('edition')
@@ -14,14 +14,21 @@ module.exports = {
                     { name: '☕ Java Edition', value: 'java' },
                     { name: '🪨 Bedrock Edition', value: 'bedrock' }
                 )
-        ),
+        );
+}
 
-    async execute(interaction) {
-        const edition = interaction.options.getString('edition') || 'all';
-        const config = getMinecraftConfig();
-        // buildIpResponse() already carries [IsComponentsV2, Ephemeral]:
-        // the addresses stay private to whoever ran the command.
-        const payload = buildIpResponse(config, edition);
-        await interaction.reply(payload);
-    }
+async function executeIpCommand(interaction) {
+    const edition = interaction.options.getString('edition') || 'all';
+    const config = getMinecraftConfig();
+    // buildIpResponse() already carries [IsComponentsV2, Ephemeral]:
+    // the addresses stay private to whoever ran the command.
+    const payload = buildIpResponse(config, edition);
+    await interaction.reply(payload);
+}
+
+module.exports = {
+    data: buildIpCommandData('serverip'),
+    execute: executeIpCommand,
+    buildIpCommandData,
+    executeIpCommand,
 };

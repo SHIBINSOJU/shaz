@@ -15,10 +15,12 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('../../../core/logger');
 const { buildInfoContainer } = require('../../../utils/componentsV2');
-const { withRetry } = require('../../../utils/retry');
+const { withRetry, isTransientError } = require('../../../utils/retry');
 const { NO_MENTIONS, safePlainText } = require('./ticketIdentity');
 const { resolveTicketsConfig } = require('../config');
 const configService = require('../../../core/configService');
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function resolveTicketLogChannel(guild) {
     let config;
@@ -92,7 +94,13 @@ async function logTicket(guild, { title, accent = 0x5865F2, fields = [] }) {
 // The temp file is removed in ALL cases (success or failure).
 // ---------------------------------------------------------------------------
 
-async function writeTempTranscriptFile(filename, buffer) {
+/**
+ * Writes the transcript buffer to a temp file and VERIFIES it before we hand
+ * anything to Discord: the file must exist, be non-empty, match the buffer
+ * length, and be readable back end-to-end. Throws with the real reason if any
+ * check fails so the caller can keep the ticket channel.
+ */
+async function writeVerifiedTempTranscript(buffer) {
     const dir = path.join(os.tmpdir(), 'shaz-ticket-transcripts');
     await fs.mkdir(dir, { recursive: true });
     const tmpPath = path.join(
@@ -100,6 +108,18 @@ async function writeTempTranscriptFile(filename, buffer) {
         `transcript-${Date.now()}-${crypto.randomBytes(6).toString('hex')}.html`
     );
     await fs.writeFile(tmpPath, buffer);
+
+    const stat = await fs.stat(tmpPath);
+    if (!stat.isFile() || stat.size === 0) {
+        throw new Error(`temp transcript is not a readable non-empty file (size ${stat.size})`);
+    }
+    if (stat.size !== buffer.length) {
+        throw new Error(`temp transcript size mismatch (expected ${buffer.length}, wrote ${stat.size})`);
+    }
+    const readBack = await fs.readFile(tmpPath);
+    if (readBack.length !== buffer.length || !readBack.equals(buffer)) {
+        throw new Error(`temp transcript could not be read back intact (${readBack.length}/${buffer.length} bytes)`);
+    }
     return tmpPath;
 }
 
@@ -114,34 +134,78 @@ async function cleanupTempFile(tmpPath) {
  * Sends a V2 log payload WITH the transcript as a REAL Discord file
  * attachment (native download/open UI — never a filename text lookalike).
  *
- * Returns { ok: true, message, attachmentUrl } on success. The attachment
- * presence is VERIFIED on the sent message: if Discord did not store the
- * file, this returns { ok: false, error: 'attachment-missing' } so the
- * caller keeps the ticket channel instead of deleting history.
- * Never throws.
+ * Reliability contract:
+ *  - Rejects an empty/non-Buffer transcript up front (that is exactly what
+ *    makes Discord accept a message but store NO attachment).
+ *  - Verifies the on-disk file exists and is readable before uploading.
+ *  - Attaches from the in-memory Buffer (not the temp path) so the multipart
+ *    body never depends on a lazy re-read of the file at send time.
+ *  - After sending, verifies the returned message actually carries an
+ *    attachment WITH a URL and non-zero size.
+ *  - Retries transient network errors and "message stored but no attachment"
+ *    up to `attempts` times; 429 rate limits are waited out transparently by
+ *    @discordjs/rest, so they never surface here.
+ *
+ * Returns { ok: true, message, attachmentUrl } only when the attachment is
+ * verified present. Otherwise { ok: false, error } so the caller KEEPS the
+ * ticket channel instead of deleting history. Never throws.
  */
-async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuffer) {
+async function sendPayloadWithTranscriptFile(channel, payload, filename, fileBuffer, { attempts = 3 } = {}) {
     const name = String(filename || 'transcript.html');
+
+    if (!Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+        const detail = !fileBuffer
+            ? 'no buffer was provided'
+            : !Buffer.isBuffer(fileBuffer)
+                ? `expected a Buffer but got ${typeof fileBuffer}`
+                : 'the transcript buffer is empty (0 bytes)';
+        logger.error(`Transcript upload aborted for ${name}: ${detail}. Ticket channel kept.`);
+        return { ok: false, error: 'empty-transcript' };
+    }
+
     let tmpPath = null;
     try {
-        tmpPath = await writeTempTranscriptFile(name, fileBuffer);
-        const attachment = new AttachmentBuilder(tmpPath, {
-            name,
-            description: `Ticket transcript ${name}`.slice(0, 200)
-        });
-        const message = await withRetry(
-            () => channel.send({ ...payload, files: [attachment], allowedMentions: NO_MENTIONS }),
-            { attempts: 2 }
-        );
-        const attached = message?.attachments?.size > 0
-            ? [...message.attachments.values()][0]
-            : null;
-        if (!attached) {
-            logger.error(`Transcript upload failed for ${name}: Discord accepted the message but stored no attachment.`);
-            return { ok: false, error: 'attachment-missing' };
+        tmpPath = await writeVerifiedTempTranscript(fileBuffer);
+    } catch (error) {
+        logger.error(`Transcript upload aborted for ${name}: file verification failed: ${error.message}. Ticket channel kept.`);
+        await cleanupTempFile(tmpPath);
+        return { ok: false, error: 'transcript-file-unreadable' };
+    }
+
+    try {
+        for (let attempt = 1; attempt <= attempts; attempt++) {
+            const attachment = new AttachmentBuilder(fileBuffer, {
+                name,
+                description: `Ticket transcript ${name}`.slice(0, 200)
+            });
+
+            let message;
+            try {
+                message = await channel.send({ ...payload, files: [attachment], allowedMentions: NO_MENTIONS });
+            } catch (error) {
+                const transient = isTransientError(error);
+                logger.error(`Transcript upload send failed for ${name} (attempt ${attempt}/${attempts}, transient=${transient}): ${error.message}`);
+                if (!transient || attempt === attempts) {
+                    return { ok: false, error: error.message || 'upload-failed' };
+                }
+                await sleep(1000 * attempt);
+                continue;
+            }
+
+            const attached = message?.attachments?.size
+                ? [...message.attachments.values()][0]
+                : null;
+            if (attached && attached.url && (attached.size ?? 0) > 0) {
+                logger.info(`Transcript uploaded: ${name} (message ${message.id}, ${attached.size} bytes) -> ${attached.url}`);
+                return { ok: true, message, attachmentUrl: attached.url };
+            }
+
+            logger.warn(`Transcript upload attempt ${attempt}/${attempts} for ${name}: Discord accepted the message but stored no attachment.`);
+            if (attempt < attempts) await sleep(1000 * attempt);
         }
-        logger.info(`Transcript uploaded: ${name} (message ${message.id}, ${attached.size || '?'} bytes) -> ${attached.url}`);
-        return { ok: true, message, attachmentUrl: attached.url };
+
+        logger.error(`Transcript upload failed for ${name}: Discord stored no attachment after ${attempts} attempts. Ticket channel kept.`);
+        return { ok: false, error: 'attachment-missing' };
     } catch (error) {
         logger.error(`Transcript upload failed for ${name}: ${error.message}`);
         return { ok: false, error: error.message || 'upload-failed' };

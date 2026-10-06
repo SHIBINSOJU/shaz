@@ -36,7 +36,7 @@ Full step-by-step guide (Discord portal, invite link, MongoDB, config, productio
 | 👤 Personal | AFK status, personal reminders | `/afk /remind /reminders` |
 | 🎉 Fun | 8ball, choice picker, coin flip, dice | `/8ball /choose /coinflip /dice` |
 | 🛠️ Utility | Server/user info, avatar, banner, ping, uptime | `/avatar /banner /botinfo /userinfo /serverinfo /…` |
-| 🎮 Minecraft | Server IP: public IP-free trigger prompt, address delivered only ephemerally via `/serverip` & buttons | `/serverip` |
+| 🎮 Minecraft | Server IP: keyword trigger DMs the full panel (never posted publicly), `/serverip` & buttons answer ephemerally | `/serverip` |
 | ⚙️ Setup | Per-server configuration stored in MongoDB | `/setup …`, `/help` |
 
 Highlights:
