@@ -249,3 +249,18 @@ minecraft:
                          # Geyser file directly, so keep this value in sync with
                          # your server; it is the single source of truth here.
 
+  # /mcstatus live monitoring for ONE combined RISE SMP server
+  # (IP: risesmp.online / Port: 25890). Java + Bedrock query results are merged into a
+  # single status view — never separate sections. The bot keeps ONE permanent
+  # status message in `channelId` and edits it on every refresh (no spam).
+  status:
+    enabled: true        # Master switch for automatic monitoring + /mcstatus
+    channelId: "1556985640174886922"        # ONE configurable channel for the permanent status message ("" = no auto-post)
+    updateInterval: 60   # Seconds between automatic status refreshes (min 15s)
+    host: "risesmp.online" # Single RISE SMP server host
+    port: 25890          # Single RISE SMP server port (displayed + queried)
+    timeoutMs: 5000      # Per-query timeout before the server counts as offline
+    javaPort: 25890      # Deprecated alias of `port` (kept for backward compat)
+    pollSeconds: 60      # Deprecated alias of `updateInterval` (kept for backward compat)
+    minRefreshSeconds: 15 # Min gap for manual 🔄 Refresh (anti-spam)
+

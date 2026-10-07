@@ -10,6 +10,17 @@ const {
 } = require('discord.js');
 const configService = require('../../../core/configService');
 
+// ---------------------------------------------------------------------------
+// Centralized Bedrock connection details — SINGLE source of truth.
+// Bedrock is ALWAYS displayed as separate IP and Port fields, never as
+// `host:port`. Every IP Container, DM, auto-response, log and status text
+// must go through getBedrockConnection()/formatBedrockDetails() below so no
+// hardcoded or inconsistent values can drift into different places.
+// ---------------------------------------------------------------------------
+const BEDROCK_DEFAULT_IP = 'risesmp.online';
+const BEDROCK_DEFAULT_PORT = '25890';
+const JAVA_DEFAULT_IP = 'risesmp.online';
+
 // In-memory cooldown tracker: key `${channelId}:${userId}` -> timestamp (ms)
 const lastTriggered = new Map();
 
@@ -135,13 +146,14 @@ function getMinecraftConfig() {
             cooldownSeconds: Number(ipResp.cooldownSeconds ?? ipResp.cooldown?.seconds ?? 5),
             java: {
                 // Java is displayed as a bare host — no port is read or shown.
-                address: String(java.address || 'risesmp.online').trim()
+                address: String(java.address || JAVA_DEFAULT_IP).trim() || JAVA_DEFAULT_IP
             },
             bedrock: {
-                address: String(bedrock.address || 'risesmp.online').trim(),
+                // Centralized Bedrock defaults: IP risesmp.online, Port 25890.
+                address: String(bedrock.address || BEDROCK_DEFAULT_IP).trim() || BEDROCK_DEFAULT_IP,
                 port: bedrock.port !== undefined && bedrock.port !== null && String(bedrock.port).trim() !== ''
                     ? String(bedrock.port).trim()
-                    : '<BEDROCK_PORT>'
+                    : BEDROCK_DEFAULT_PORT
             }
         }
     };
@@ -225,11 +237,84 @@ function formatJavaAddress(config) {
     return config.ipResponse.java.address;
 }
 
-/** Address + configured Bedrock/Geyser port (never guessed — config.yml only). */
+/**
+ * Centralized Bedrock connection resolver.
+ * Accepts a normalized minecraft config (with `ipResponse.bedrock`) or nothing
+ * (then the current config is loaded). Always returns { ip, port } strings.
+ * Single source of truth — no caller may hardcode the Bedrock host/port.
+ */
+function getBedrockConnection(config) {
+    const cfg = config || getMinecraftConfig();
+    const bedrock = (cfg && cfg.ipResponse && cfg.ipResponse.bedrock) || {};
+    const ip = String(bedrock.address || BEDROCK_DEFAULT_IP).trim() || BEDROCK_DEFAULT_IP;
+    const port = bedrock.port !== undefined && bedrock.port !== null && String(bedrock.port).trim() !== ''
+        ? String(bedrock.port).trim()
+        : BEDROCK_DEFAULT_PORT;
+    return { ip, port };
+}
+
+/**
+ * Display-ready Bedrock details with SEPARATE IP and Port fields.
+ * Used inside Components V2 TextDisplays. Never returns `host:port`.
+ * Renders as:
+ *   IP: `risesmp.online`
+ *   Port: `25890`
+ */
+function formatBedrockDetails(config) {
+    const { ip, port } = getBedrockConnection(config);
+    return `IP: \`${ip}\`\nPort: \`${port}\``;
+}
+
+/**
+ * Historic formatter name — now an alias to formatBedrockDetails so every
+ * existing caller automatically gets separate IP/Port fields.
+ * NEVER returns `host:port`.
+ */
 function formatBedrockAddress(config) {
-    const host = config.ipResponse.bedrock.address;
-    const port = config.ipResponse.bedrock.port;
-    return port ? `${host}:${port}` : host;
+    return formatBedrockDetails(config);
+}
+
+/**
+ * Generic single-line host/port display for logs / status text (no Discord
+ * code ticks): `IP: risesmp.online | Port: 25890`. Never `host:port`.
+ * This is the ONE centralized formatter — query diagnostics, monitor logs
+ * and status text must all go through it (or sanitizeAddressForLog below).
+ */
+function formatHostPortLog(host, port) {
+    const ip = String(host).trim() || BEDROCK_DEFAULT_IP;
+    const cleanPort = port !== undefined && port !== null && String(port).trim() !== ''
+        ? String(port).trim()
+        : BEDROCK_DEFAULT_PORT;
+    return `IP: ${ip} | Port: ${cleanPort}`;
+}
+
+/**
+ * Single-line Bedrock display for logs / status text (no Discord code ticks):
+ * `IP: risesmp.online | Port: 25890`. Never `host:port`.
+ */
+function formatBedrockLogString(configOrHost, maybePort) {
+    if (typeof configOrHost === 'string') {
+        return formatHostPortLog(configOrHost, maybePort);
+    }
+    const { ip, port } = getBedrockConnection(configOrHost);
+    return formatHostPortLog(ip, port);
+}
+
+/**
+ * Rewrites any residual `hostname:port` / `IPv4:port` fragments inside free
+ * text (e.g. Node socket errors like `connect ECONNREFUSED 1.2.3.4:25890`)
+ * into the separate `IP: … | Port: …` form so logs never show a combined
+ * address. Leaves text without such fragments untouched.
+ */
+function sanitizeAddressForLog(text) {
+    if (text === undefined || text === null) return text;
+    let out = String(text);
+    // IPv4 literals first: 1.2.3.4:25890
+    out = out.replace(/(\b\d{1,3}(?:\.\d{1,3}){3}):(\d{2,5})\b/g, 'IP: $1 | Port: $2');
+    // DNS hostnames: <hostname>:<port> (requires a dotted name so clock
+    // strings like 07:07:55 and stage labels are never touched).
+    out = out.replace(/(^|[\s>(;[])([A-Za-z0-9](?:[A-Za-z0-9.-]{0,200}[A-Za-z0-9])?\.[A-Za-z]{2,}):(\d{2,5})(?![\w:])/g, '$1IP: $2 | Port: $3');
+    return out;
 }
 
 /** [☕ Java IP] [🪨 Bedrock IP] [🎮 Both] — the active edition is highlighted. */
@@ -261,7 +346,7 @@ const NO_MENTIONS = { parse: [], repliedUser: false };
  */
 function buildIpResponse(config, edition = 'all') {
     const javaDisplay = formatJavaAddress(config);
-    const bedrockDisplay = formatBedrockAddress(config);
+    const bedrockDetails = formatBedrockDetails(config);
 
     const container = new ContainerBuilder().setAccentColor(config.accentColor);
     const divider = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
@@ -271,7 +356,7 @@ function buildIpResponse(config, edition = 'all') {
     if (edition === 'bedrock') {
         container.addSeparatorComponents(divider());
         container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-            `### 🪨 BEDROCK EDITION\n\n\`${bedrockDisplay}\``
+            `### 🪨 BEDROCK EDITION\n\n${bedrockDetails}`
         ));
     } else {
         container.addSeparatorComponents(divider());
@@ -281,7 +366,7 @@ function buildIpResponse(config, edition = 'all') {
         if (edition !== 'java') {
             container.addSeparatorComponents(divider());
             container.addTextDisplayComponents(new TextDisplayBuilder().setContent(
-                `### 🪨 BEDROCK EDITION\n\n\`${bedrockDisplay}\``
+                `### 🪨 BEDROCK EDITION\n\n${bedrockDetails}`
             ));
         }
     }
@@ -312,11 +397,21 @@ module.exports = {
     getMinecraftConfig,
     checkCooldown,
     detectIpQuery,
+    formatJavaAddress,
+    getBedrockConnection,
+    formatBedrockDetails,
+    formatBedrockAddress,
+    formatBedrockLogString,
+    formatHostPortLog,
+    sanitizeAddressForLog,
     buildIpResponse,
     buildIpDirectMessage,
     alreadyProcessedMessage,
     withIpResultLock,
     rememberEphemeralResult,
     clearEphemeralResult,
-    editEphemeralResult
+    editEphemeralResult,
+    BEDROCK_DEFAULT_IP,
+    BEDROCK_DEFAULT_PORT,
+    JAVA_DEFAULT_IP
 };

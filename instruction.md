@@ -139,7 +139,7 @@ Interactive 15-minute session that builds a Components V2 message (title, descri
 `/ping` (latency), `/uptime`, `/botinfo`, `/serverinfo`, `/userinfo`, `/avatar`, `/banner`, `/servericon`, `/membercount`, `/roleinfo`, `/channelinfo`.
 
 ### 🎮 Minecraft (`/serverip`)
-- `/serverip [edition: all|java|bedrock]` — **ephemeral** Components V2 container with the connection addresses (Java `risesmp.online` — a bare host with **no port**; Bedrock `risesmp.online:25890`, using the port configured under `minecraft.ipResponse.bedrock.port`).
+- `/serverip [edition: all|java|bedrock]` — **ephemeral** Components V2 container with the connection addresses (Java `risesmp.online` — a bare host with **no port**; Bedrock always as separate fields — IP: `risesmp.online` / Port: `25890`, using the port configured under `minecraft.ipResponse.bedrock.port`).
 - **Keyword trigger (DM, never public)**: `messageCreate` detects phrases like `ip`, `server ip`, `how to join`, `java ip`, `bedrock ip`, or `risesmp.online` and DMs the requester the full Components V2 IP panel with the `[☕ Java IP] [🪨 Bedrock IP] [🎮 Both]` buttons (per-channel/user cooldown, bots/webhooks excluded, zero pings, redelivery dedupe). Because a `messageCreate` event cannot send an ephemeral message, nothing is posted to the channel at all — the DM is the private equivalent. If DMs are closed, a single short hint without any address is posted instead. Every `mc:ip:*` button (and `/serverip`) answers **ephemeral** (or updates the DM in place), so the IP never appears in the channel.
 
 ### ⚙️ Setup & Help

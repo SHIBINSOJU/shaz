@@ -39,14 +39,17 @@ function uniqueChannelName(guild, baseName) {
 }
 
 // Splits configured staff roles into existing guild roles + missing IDs
-// (missing roles warn instead of failing creation).
-function resolveStaffRoles(guild, staffRoleIds) {
+// (missing roles warn instead of failing creation). Falls back to a direct
+// fetch so a cold role cache can never silently drop the mention.
+async function resolveStaffRoles(guild, staffRoleIds) {
     const existing = [];
     const missing = [];
     for (const roleId of staffRoleIds || []) {
-        const role = guild.roles.cache.get(roleId) || null;
+        const id = String(roleId);
+        const role = guild.roles.cache.get(id)
+            || await guild.roles.fetch(id).catch(() => null);
         if (role) existing.push(role);
-        else missing.push(roleId);
+        else missing.push(id);
     }
     return { existing, missing };
 }

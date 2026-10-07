@@ -221,7 +221,7 @@ async function createTicket({ client, guild, member, categoryKey, reason, config
         });
         const name = uniqueChannelName(guild, baseName);
 
-        const { existing: categoryStaffRoles, missing } = resolveStaffRoles(guild, category.staffRoleIds);
+        const { existing: categoryStaffRoles, missing } = await resolveStaffRoles(guild, category.staffRoleIds);
         if (missing.length > 0) {
             logger.warn(`Tickets: category "${categoryKey}" references missing roles: ${missing.join(', ')}`);
         }
@@ -230,7 +230,11 @@ async function createTicket({ client, guild, member, categoryKey, reason, config
         // against the guild like every other role — unknown IDs only warn.
         let staffRoles = [...categoryStaffRoles];
         if (config.supportRoleId) {
-            const globalRole = guild.roles.cache.get(String(config.supportRoleId)) || null;
+            const supportId = String(config.supportRoleId);
+            // Cache first, fetch fallback: a cold cache must never silently
+            // drop the support mention from the welcome message.
+            const globalRole = guild.roles.cache.get(supportId)
+                || await guild.roles.fetch(supportId).catch(() => null);
             if (globalRole && !staffRoles.some((r) => r.id === globalRole.id)) {
                 staffRoles.push(globalRole);
             } else if (!globalRole) {

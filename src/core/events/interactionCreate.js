@@ -48,6 +48,13 @@ module.exports = function createInteractionCreateEvent(ctx) {
                     return;
                 }
             } catch (error) {
+                // 10062 = the interaction token already expired (stale click,
+                // gateway hiccup, >3s without ack). Any reply/followUp attempt
+                // will only produce a second 10062 — log and stop.
+                if (error?.code === 10062) {
+                    logger.warn(`Interaction expired before response (${describe(interaction)}): 10062 Unknown interaction — no retry attempted.`);
+                    return;
+                }
                 logger.error(`Interaction handling failed (${describe(interaction)}): ${error.stack || error}`);
                 const payload = {
                     content: isTransientError(error)
