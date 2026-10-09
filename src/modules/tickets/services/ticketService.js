@@ -213,7 +213,10 @@ async function createTicket({ client, guild, member, categoryKey, reason, config
         }
 
         const number = await ticketRepository.nextTicketNumber(guild.id);
-        // The actual Discord username — never a nickname, never the actor.
+        // Sequential channel name (ticket-1, ticket-2, ...) from the atomic
+        // per-guild counter allocated above — never counted from channels,
+        // never reused. uniqueChannelName is only a safety net for a
+        // manually-created colliding channel.
         const baseName = buildTicketName(config.naming.format, {
             username: member.user?.username || member.displayName,
             category: categoryKey,

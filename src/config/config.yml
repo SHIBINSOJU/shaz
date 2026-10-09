@@ -176,7 +176,7 @@ tickets:
   support_role_id: "1480158114157428786"       # Global support role ID, e.g. "1556360796085293146"
 
   naming:
-    format: "ticket-{username}"   # Tokens: {username} {category} {number}
+    format: "ticket-{number}"   # Tokens: {number} {username} {category} — sequential IDs never reuse numbers
 
   close:
     deleteImmediately: false  # false = archive (lock + optional move), true = delete channel on close

@@ -96,7 +96,7 @@ async function resolveTicketsConfig(guild) {
             db?.tickets?.supportRoleId ?? base.support_role_id ?? base.supportRoleId ?? ''
         ).trim(),
         naming: {
-            format: naming.format || 'ticket-{username}'
+            format: naming.format || 'ticket-{number}'
         },
         close: {
             deleteImmediately: db?.tickets?.deleteImmediately ?? close.deleteImmediately ?? false,

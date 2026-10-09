@@ -72,13 +72,17 @@ async function resolveCreatorSegment(guild, userId) {
     return 'user';
 }
 
-// Single canonical ticket channel name builder. OPEN -> ticket-<creator>,
-// CLOSED -> closed-<creator>. Always derived from ticket.userId so the name
-// survives claim/close/reopen/delete by other staff members.
+// Single canonical ticket channel name builder. OPEN -> ticket-<number>,
+// CLOSED -> closed-<number>. Derived from the atomic per-guild ticket
+// counter (ticket.number), so names stay sequential, unique, and stable
+// across claim/close/reopen/delete by any staff member — no username
+// lookups, no renames when the creator leaves, no ID reuse.
 async function buildTicketChannelName(guild, ticket, state) {
-    const segment = await resolveCreatorSegment(guild, ticket.userId);
-    const base = state === 'closed' ? `closed-${segment}` : `ticket-${segment}`;
-    return base.slice(0, 100) || `ticket-${ticket.number}`;
+    void guild;
+    const number = Number(ticket?.number);
+    if (!Number.isFinite(number)) return `ticket-${Date.now().toString(36)}`;
+    const base = state === 'closed' ? `closed-${number}` : `ticket-${number}`;
+    return base.slice(0, 100) || `ticket-${number}`;
 }
 
 async function createTicketChannel({ guild, client, name, categoryChannelId, userId, staffRoles }) {
