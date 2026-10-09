@@ -19,6 +19,43 @@ const guildSettingsSchema = new mongoose.Schema({
         logChannelId: { type: String, default: null },
         logsEnabled: { type: Boolean, default: null }
     },
+    // Per-category server logging (src/modules/logs). `null` = inherit default.
+    // The `moderation` category falls back to moderation.logChannelId when unset,
+    // so the legacy /setup modlog-channel keeps working.
+    logs: {
+        member: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        message: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        voice: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        channel: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        role: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        moderation: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        server: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        },
+        invite: {
+            enabled: { type: Boolean, default: null },
+            channelId: { type: String, default: null }
+        }
+    },
     antilink: {
         enabled: { type: Boolean, default: null },
         disabledChannels: { type: [String], default: [] },

@@ -29,7 +29,7 @@ https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scop
 ```
 
 - `permissions=8` = Administrator (simplest; the bot manages channels/roles for tickets, moderation, autorole).
-- For least privilege instead, grant at minimum: View Channels, Send Messages, Manage Channels, Manage Messages, Manage Roles, Kick/Ban Members, Moderate Members, Embed Links, Attach Files, Read Message History, Mention Everyone (for announces, if used).
+- For least privilege instead, grant at minimum: View Channels, Send Messages, Manage Channels, Manage Messages, Manage Roles, Kick/Ban Members, Moderate Members, Embed Links, Attach Files, Read Message History, View Audit Log (for moderator attribution in `/logs`), Mention Everyone (for announces, if used).
 - `applications.commands` scope is what makes slash commands appear.
 
 > Setting up tickets or autorole later? The bot also needs its role **above** the roles it assigns/manages in Server Settings → Roles.

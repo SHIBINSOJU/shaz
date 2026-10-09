@@ -16,6 +16,7 @@ modules:
   personal: true
   fun: true
   automod: true
+  logs: true
 
   # Future modules (not implemented yet — keep disabled)
   music: false

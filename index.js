@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits } = require('discord.js');
+const { Client, GatewayIntentBits, Partials } = require('discord.js');
 const logger = require('./src/core/logger');
 const configService = require('./src/core/configService');
 const ModuleManager = require('./src/core/moduleManager');
@@ -12,7 +12,30 @@ const client = new Client({
         GatewayIntentBits.Guilds,
         GatewayIntentBits.GuildMembers,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent
+        GatewayIntentBits.MessageContent,
+        // Required by the server logging system (src/modules/logs):
+        // voice states, bans/timeouts, invites, emojis/stickers,
+        // reactions (cache only) and scheduled events. Each maps to a
+        // documented log category — see src/modules/logs/index.js.
+        // Privileged intents (GuildMembers, MessageContent) must ALSO be
+        // enabled in the Developer Portal (Bot -> Privileged Gateway Intents).
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.GuildModeration,
+        GatewayIntentBits.GuildInvites,
+        GatewayIntentBits.GuildEmojisAndStickers,
+        GatewayIntentBits.GuildMessageReactions,
+        GatewayIntentBits.GuildScheduledEvents
+    ],
+    // Partials let the logging system handle uncached deletes/edits
+    // safely instead of crashing on missing data.
+    partials: [
+        Partials.Message,
+        Partials.Channel,
+        Partials.GuildMember,
+        Partials.Reaction,
+        Partials.User,
+        Partials.ThreadMember,
+        Partials.GuildScheduledEvent
     ]
 });
 

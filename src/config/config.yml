@@ -47,6 +47,20 @@ moderation:
     enabled: true
     channelId: ""        # Channel ID for moderation logs ("" = logging disabled)
 
+# Per-category server logging defaults (src/modules/logs).
+# Per-guild overrides live in MongoDB GuildSettings.logs and take priority.
+# "" channelId = not set (events for that category are skipped until configured).
+logs:
+  enabled: true          # Master switch for the whole logging system
+  member: { enabled: true, channelId: "" }
+  message: { enabled: true, channelId: "" }
+  voice: { enabled: true, channelId: "" }
+  channel: { enabled: true, channelId: "" }
+  role: { enabled: true, channelId: "" }
+  moderation: { enabled: true, channelId: "" }   # "" = fall back to moderation.logs.channelId
+  server: { enabled: true, channelId: "" }
+  invite: { enabled: true, channelId: "" }
+
 antilink:
   enabled: true          # Server-wide default; per-guild overrides via /antilink
 

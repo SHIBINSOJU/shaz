@@ -71,12 +71,12 @@ module.exports = {
                 case 'header':
                     await showModal(interaction, `embed:modal:header:${session.id}`,
                         'Edit Header', [
-                            textInput('text', 'Header text (empty = disable)', {
-                                required: false, maxLength: 1000,
-                                value: session.state.header.enabled ? session.state.header.text : '',
-                                placeholder: '🎉 Welcome to our server!  Supports {server} {user} {membercount}'
-                            })
-                        ]);
+                        textInput('text', 'Header text (empty = disable)', {
+                            required: false, maxLength: 1000,
+                            value: session.state.header.enabled ? session.state.header.text : '',
+                            placeholder: '<:RISE:1489608533832896674> '
+                        })
+                    ]);
                     break;
                 case 'addtext':
                     if (!canAddText(session)) {
@@ -85,11 +85,11 @@ module.exports = {
                     }
                     await showModal(interaction, `embed:modal:text:${session.id}`,
                         'Add Text Section', [
-                            textInput('content', 'Text content', {
-                                style: TextInputStyle.Paragraph, required: true, maxLength: 4000,
-                                placeholder: 'Write announcements, rules, info…  Supports {server} {user} {membercount}'
-                            })
-                        ]);
+                        textInput('content', 'Text content', {
+                            style: TextInputStyle.Paragraph, required: true, maxLength: 4000,
+                            placeholder: 'Write announcements, rules, info…  Supports {server} {user} {membercount}'
+                        })
+                    ]);
                     break;
                 case 'media':
                     if (!canAddMedia(session)) {
@@ -98,9 +98,9 @@ module.exports = {
                     }
                     await showModal(interaction, `embed:modal:media:${session.id}`,
                         'Add Media', [
-                            textInput('url', 'Image / GIF URL', { required: true, maxLength: 2000, placeholder: 'https://example.com/image.png' }),
-                            textInput('alt', 'Alt text (optional)', { required: false, maxLength: 1000 })
-                        ]);
+                        textInput('url', 'Image / GIF URL', { required: true, maxLength: 2000, placeholder: 'https://example.com/image.png' }),
+                        textInput('alt', 'Alt text (optional)', { required: false, maxLength: 1000 })
+                    ]);
                     break;
                 case 'buttons':
                     if (!canAddButton(session)) {
@@ -109,33 +109,33 @@ module.exports = {
                     }
                     await showModal(interaction, `embed:modal:button:${session.id}`,
                         'Add Link Button', [
-                            textInput('label', 'Button label', { required: true, maxLength: 80, placeholder: '🌐 Website' }),
-                            textInput('url', 'Button URL', { required: true, maxLength: 2000, placeholder: 'https://example.com' }),
-                            textInput('emoji', 'Emoji (optional)', { required: false, maxLength: 100, placeholder: '🌐' })
-                        ]);
+                        textInput('label', 'Button label', { required: true, maxLength: 80, placeholder: '🌐 Website' }),
+                        textInput('url', 'Button URL', { required: true, maxLength: 2000, placeholder: 'https://example.com' }),
+                        textInput('emoji', 'Emoji (optional)', { required: false, maxLength: 100, placeholder: '🌐' })
+                    ]);
                     break;
                 case 'style':
                     await showModal(interaction, `embed:modal:style:${session.id}`,
                         'Message Style', [
-                            textInput('color', 'Accent color hex (empty = default)', {
-                                required: false, maxLength: 7,
-                                value: accentToHex(session.state.accent),
-                                placeholder: '#5865F2'
-                            })
-                        ]);
+                        textInput('color', 'Accent color hex (empty = default)', {
+                            required: false, maxLength: 7,
+                            value: accentToHex(session.state.accent),
+                            placeholder: '#5865F2'
+                        })
+                    ]);
                     break;
                 case 'thumbnail':
                     await showModal(interaction, `embed:modal:thumbnail:${session.id}`,
                         'Thumbnail', [
-                            textInput('url', 'Thumbnail URL (empty = disable)', {
-                                required: false, maxLength: 2000,
-                                value: session.state.thumbnail.enabled ? session.state.thumbnail.url : ''
-                            }),
-                            textInput('alt', 'Alt text (optional)', {
-                                required: false, maxLength: 1000,
-                                value: session.state.thumbnail.description || ''
-                            })
-                        ]);
+                        textInput('url', 'Thumbnail URL (empty = disable)', {
+                            required: false, maxLength: 2000,
+                            value: session.state.thumbnail.enabled ? session.state.thumbnail.url : ''
+                        }),
+                        textInput('alt', 'Alt text (optional)', {
+                            required: false, maxLength: 1000,
+                            value: session.state.thumbnail.description || ''
+                        })
+                    ]);
                     break;
                 case 'separator':
                     if (!canAddBlock(session)) {
@@ -149,12 +149,12 @@ module.exports = {
                 case 'footer':
                     await showModal(interaction, `embed:modal:footer:${session.id}`,
                         'Edit Footer', [
-                            textInput('text', 'Footer text (empty = disable)', {
-                                required: false, maxLength: 1000,
-                                value: session.state.footer.enabled ? session.state.footer.text : '',
-                                placeholder: 'Made with ❤️ by ShotDevs'
-                            })
-                        ]);
+                        textInput('text', 'Footer text (empty = disable)', {
+                            required: false, maxLength: 1000,
+                            value: session.state.footer.enabled ? session.state.footer.text : '',
+                            placeholder: '<:RISE:1489608533832896674>'
+                        })
+                    ]);
                     break;
                 case 'edit':
                 case 'remove':
@@ -263,28 +263,28 @@ async function handleEditPick(interaction, session, block) {
     if (block.type === 'text') {
         await showModal(interaction, `embed:modal:text:${session.id}:${block.id}`,
             'Edit Text Section', [
-                textInput('content', 'Text content (empty = remove block)', {
-                    style: TextInputStyle.Paragraph, required: false, maxLength: 4000,
-                    value: block.content || ''
-                })
-            ]);
+            textInput('content', 'Text content (empty = remove block)', {
+                style: TextInputStyle.Paragraph, required: false, maxLength: 4000,
+                value: block.content || ''
+            })
+        ]);
         return;
     }
     if (block.type === 'media') {
         await showModal(interaction, `embed:modal:media:${session.id}:${block.id}`,
             'Add Media Item', [
-                textInput('url', 'Image / GIF URL', { required: true, maxLength: 2000, placeholder: 'https://example.com/image.png' }),
-                textInput('alt', 'Alt text (optional)', { required: false, maxLength: 1000 })
-            ]);
+            textInput('url', 'Image / GIF URL', { required: true, maxLength: 2000, placeholder: 'https://example.com/image.png' }),
+            textInput('alt', 'Alt text (optional)', { required: false, maxLength: 1000 })
+        ]);
         return;
     }
     if (block.type === 'buttons') {
         await showModal(interaction, `embed:modal:button:${session.id}:${block.id}`,
             'Add Link Button', [
-                textInput('label', 'Button label', { required: true, maxLength: 80 }),
-                textInput('url', 'Button URL', { required: true, maxLength: 2000 }),
-                textInput('emoji', 'Emoji (optional)', { required: false, maxLength: 100 })
-            ]);
+            textInput('label', 'Button label', { required: true, maxLength: 80 }),
+            textInput('url', 'Button URL', { required: true, maxLength: 2000 }),
+            textInput('emoji', 'Emoji (optional)', { required: false, maxLength: 100 })
+        ]);
         return;
     }
     await notifyEphemeral(interaction, 'ℹ️ Separators have no settings — use Up / Down / Remove to manage them.');
