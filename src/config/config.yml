@@ -52,14 +52,14 @@ moderation:
 # "" channelId = not set (events for that category are skipped until configured).
 logs:
   enabled: true          # Master switch for the whole logging system
-  member: { enabled: true, channelId: "" }
-  message: { enabled: true, channelId: "" }
-  voice: { enabled: true, channelId: "" }
-  channel: { enabled: true, channelId: "" }
-  role: { enabled: true, channelId: "" }
-  moderation: { enabled: true, channelId: "" }   # "" = fall back to moderation.logs.channelId
-  server: { enabled: true, channelId: "" }
-  invite: { enabled: true, channelId: "" }
+  member: { enabled: true, channelId: "1492152450063532153" }
+  message: { enabled: true, channelId: "1492152450063532153" }
+  voice: { enabled: true, channelId: "1492152511036129300" }
+  channel: { enabled: true, channelId: "1492152511036129300" }
+  role: { enabled: true, channelId: "1492152511036129300" }
+  moderation: { enabled: true, channelId: "1492152450063532153" }   # "" = fall back to moderation.logs.channelId
+  server: { enabled: true, channelId: "1492152450063532153" }
+  invite: { enabled: true, channelId: "1492152450063532153" }
 
 antilink:
   enabled: true          # Server-wide default; per-guild overrides via /antilink
