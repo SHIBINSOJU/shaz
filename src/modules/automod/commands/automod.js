@@ -111,7 +111,37 @@ module.exports = {
             .addSubcommand(sub => sub
                 .setName('user')
                 .setDescription('Remove a user exemption.')
-                .addUserOption(o => o.setName('user').setDescription('User to un-exempt').setRequired(true)))),
+                .addUserOption(o => o.setName('user').setDescription('User to un-exempt').setRequired(true))))
+        .addSubcommandGroup(group => group
+            .setName('invite')
+            .setDescription('Allow or enforce Discord invites per channel (Anti-Invite only).')
+            .addSubcommand(sub => sub
+                .setName('disable')
+                .setDescription('Allow invites in a channel (Anti-Invite off there).')
+                .addChannelOption(o => o.setName('channel').setDescription('Channel where invites are allowed').setRequired(true)
+                    .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice, ChannelType.GuildForum)))
+            .addSubcommand(sub => sub
+                .setName('enable')
+                .setDescription('Enforce Anti-Invite in a channel again.')
+                .addChannelOption(o => o.setName('channel').setDescription('Channel to enforce again').setRequired(true)
+                    .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement, ChannelType.GuildVoice, ChannelType.GuildForum)))
+            .addSubcommand(sub => sub
+                .setName('list')
+                .setDescription('List channels where invites are allowed.')))
+        .addSubcommandGroup(group => group
+            .setName('staff')
+            .setDescription('Staff roles: fully exempt from AutoMod and Anti-Link.')
+            .addSubcommand(sub => sub
+                .setName('add')
+                .setDescription('Exempt a staff role from everything.')
+                .addRoleOption(o => o.setName('role').setDescription('Staff role to exempt').setRequired(true)))
+            .addSubcommand(sub => sub
+                .setName('remove')
+                .setDescription('Remove a staff role exemption.')
+                .addRoleOption(o => o.setName('role').setDescription('Staff role to un-exempt').setRequired(true)))
+            .addSubcommand(sub => sub
+                .setName('list')
+                .setDescription('List exempt staff roles.'))),
 
     async execute(interaction) {
         if (!interaction.inGuild()) {
@@ -150,6 +180,14 @@ module.exports = {
             }
             if (group === 'whitelist' || group === 'unwhitelist') {
                 return await setExemption(interaction, sub, group === 'whitelist');
+            }
+            if (group === 'invite') {
+                if (sub === 'list') return await listInviteExceptions(interaction);
+                return await setInviteException(interaction, sub === 'disable');
+            }
+            if (group === 'staff') {
+                if (sub === 'list') return await listStaff(interaction);
+                return await setStaff(interaction, sub === 'add');
             }
             return await interaction.editReply('❌ Unknown automod subcommand.');
         } catch (error) {
@@ -270,6 +308,79 @@ async function setExemption(interaction, kind, add) {
         : `✅ Exemption removed for ${label}.`);
 }
 
+// Per-channel Anti-Invite exceptions: invites allowed in `disabled` channels,
+// enforced everywhere else. Only the antiInvite rule is affected — every
+// other rule keeps working in those channels.
+async function setInviteException(interaction, disabled) {
+    requireDatabase();
+    const channel = interaction.options.getChannel('channel', true);
+    await guildSettingsRepository.updateGuildSettings(
+        interaction.guild.id,
+        disabled
+            ? { $addToSet: { 'automod.antiInviteDisabledChannels': channel.id } }
+            : { $pull: { 'automod.antiInviteDisabledChannels': channel.id } }
+    );
+    touch(interaction.guild.id);
+    await interaction.editReply(disabled
+        ? `✅ Invites are now **allowed** in ${channel} — Anti-Invite will not act there.\n-# Note: invite links are also links — run \`/antilink channel disable\` in ${channel} as well to fully allow them.`
+        : `✅ Anti-Invite **enforced** in ${channel} again — invites will be blocked there.`);
+}
+
+async function listInviteExceptions(interaction) {
+    const config = await resolveAutomodConfig(interaction.guild);
+    const ids = config.antiInviteDisabledChannels || [];
+    await interaction.editReply(ids.length > 0
+        ? `🚫 **Invites allowed in:** ${ids.map((id) => `<#${id}>`).join(', ')}`
+        : '🚫 Anti-Invite is enforced in every channel. Use `/automod invite disable #channel` to allow invites somewhere.');
+}
+
+// Staff roles: exempt from EVERYTHING — the AutoMod engine and the legacy
+// Anti-Link listener. Stored as the source of truth in staffRoleIds and
+// mirrored into both enforcement lists (automod.exemptRoles,
+// antilink.exemptRoles) so neither pipeline can touch staff.
+async function setStaff(interaction, add) {
+    requireDatabase();
+    const role = interaction.options.getRole('role', true);
+    if (role.id === interaction.guild.id) {
+        await interaction.editReply('❌ The @everyone role cannot be a staff role.');
+        return;
+    }
+    if (role.managed) {
+        await interaction.editReply('❌ That role is managed by an integration and cannot be used as a staff role.');
+        return;
+    }
+    await guildSettingsRepository.updateGuildSettings(
+        interaction.guild.id,
+        add
+            ? {
+                $addToSet: {
+                    'automod.staffRoleIds': role.id,
+                    'automod.exemptRoles': role.id,
+                    'antilink.exemptRoles': role.id
+                }
+            }
+            : {
+                $pull: {
+                    'automod.staffRoleIds': role.id,
+                    'automod.exemptRoles': role.id,
+                    'antilink.exemptRoles': role.id
+                }
+            }
+    );
+    touch(interaction.guild.id);
+    await interaction.editReply(add
+        ? `✅ ${role} is now a **staff role** — members with it bypass AutoMod and Anti-Link everywhere.`
+        : `✅ ${role} is no longer a staff role.`);
+}
+
+async function listStaff(interaction) {
+    const config = await resolveAutomodConfig(interaction.guild);
+    const ids = config.staffRoleIds || [];
+    await interaction.editReply(ids.length > 0
+        ? `🛡️ **Staff roles (fully exempt):** ${ids.map((id) => `<@&${id}>`).join(', ')}`
+        : '🛡️ No staff roles configured. Use `/automod staff add @role` to exempt your staff team.');
+}
+
 async function showStatus(interaction) {
     const config = await resolveAutomodConfig(interaction.guild);
     const ruleLines = RULE_NAMES.map((name) => {
@@ -320,6 +431,8 @@ async function showConfig(interaction) {
                 { label: 'Exempt roles', value: (e.roleIds || []).map((id) => `<@&${id}>`).join(', ') || '_none_' },
                 { label: 'Exempt channels', value: (e.channelIds || []).map((id) => `<#${id}>`).join(', ') || '_none_' },
                 { label: 'Exempt users', value: (e.userIds || []).map((id) => `<@${id}>`).join(', ') || '_none_' },
+                { label: 'Invites allowed in', value: (config.antiInviteDisabledChannels || []).map((id) => `<#${id}>`).join(', ') || '_none_ (enforced everywhere)_' },
+                { label: 'Staff roles', value: (config.staffRoleIds || []).map((id) => `<@&${id}>`).join(', ') || '_none_' },
                 { label: 'Blocked words', value: `${words.length} configured (hidden)` }
             ],
             accent: 0x5865F2,

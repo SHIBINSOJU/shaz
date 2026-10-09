@@ -138,10 +138,14 @@ async function handleMessage(message, client) {
         }
 
         if (rules.antiInvite?.enabled ?? true) {
-            const hit = checkAntiInvite(message.content);
-            if (hit) {
-                await applyAction({ ...ctx, rule: 'antiInvite', detail: hit.detail });
-                return { handled: true, rule: 'antiInvite' };
+            // Per-channel exception: invites are allowed in these channels.
+            const inviteOff = config.antiInviteDisabledChannels || [];
+            if (!inviteOff.includes(message.channelId)) {
+                const hit = checkAntiInvite(message.content);
+                if (hit) {
+                    await applyAction({ ...ctx, rule: 'antiInvite', detail: hit.detail });
+                    return { handled: true, rule: 'antiInvite' };
+                }
             }
         }
 

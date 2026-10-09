@@ -11,6 +11,7 @@ const logger = require('../../../core/logger');
 const { getEmbedBuilderConfig } = require('../config');
 const {
     createDefaultState,
+    RISE_EMOJI,
     createSeparatorBlock,
     countByType,
     getBlock,
@@ -74,7 +75,7 @@ module.exports = {
                         textInput('text', 'Header text (empty = disable)', {
                             required: false, maxLength: 1000,
                             value: session.state.header.enabled ? session.state.header.text : '',
-                            placeholder: '<:RISE:1489608533832896674> '
+                            placeholder: `${RISE_EMOJI} `
                         })
                     ]);
                     break;
@@ -152,7 +153,7 @@ module.exports = {
                         textInput('text', 'Footer text (empty = disable)', {
                             required: false, maxLength: 1000,
                             value: session.state.footer.enabled ? session.state.footer.text : '',
-                            placeholder: '<:RISE:1489608533832896674>'
+                            placeholder: RISE_EMOJI
                         })
                     ]);
                     break;

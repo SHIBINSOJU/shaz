@@ -5,6 +5,10 @@
 
 const crypto = require('crypto');
 
+// Server brand emoji, used as the default footer and as the header/footer
+// input placeholder across the /embed builder.
+const RISE_EMOJI = '<:RISE:1489608533832896674>';
+
 function newBlockId() {
     return `b${crypto.randomBytes(3).toString('hex')}`;
 }
@@ -15,7 +19,7 @@ function createDefaultState() {
         header: { enabled: true, text: '🎉 Welcome to our server!' },
         blocks: [],
         thumbnail: { enabled: false, url: '', description: '' },
-        footer: { enabled: true, text: 'Made with ❤️ by ShotDevs' }
+        footer: { enabled: true, text: RISE_EMOJI }
     };
 }
 
@@ -79,6 +83,7 @@ function describeBlock(block, index) {
 }
 
 module.exports = {
+    RISE_EMOJI,
     createDefaultState,
     createTextBlock,
     createSeparatorBlock,

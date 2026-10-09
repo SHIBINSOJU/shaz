@@ -93,6 +93,15 @@ async function resolveAutomodConfig(guild) {
         enabled: db?.automod?.enabled ?? base.enabled ?? true,
         rules,
         actions: base.actions,
+        // Channels where invites are allowed (Anti-Invite rule skipped).
+        antiInviteDisabledChannels: Array.isArray(db?.automod?.antiInviteDisabledChannels)
+            ? db.automod.antiInviteDisabledChannels
+            : [],
+        // Staff roles (source of truth for /automod staff; mirrored into
+        // both enforcement exemption lists by the command).
+        staffRoleIds: Array.isArray(db?.automod?.staffRoleIds)
+            ? db.automod.staffRoleIds
+            : [],
         exemptions: {
             punishAdmins: base.exemptions.punishAdmins ?? false,
             roleIds: Array.isArray(db?.automod?.exemptRoles) ? db.automod.exemptRoles : (base.exemptions.roleIds || []),

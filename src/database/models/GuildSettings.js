@@ -78,7 +78,14 @@ const guildSettingsSchema = new mongoose.Schema({
         words: { type: [String], default: [] },
         exemptRoles: { type: [String], default: [] },
         exemptChannels: { type: [String], default: [] },
-        exemptUsers: { type: [String], default: [] }
+        exemptUsers: { type: [String], default: [] },
+        // Channels where the Anti-Invite rule is not enforced (invites allowed).
+        antiInviteDisabledChannels: { type: [String], default: [] },
+        // Staff roles: exempt from EVERYTHING (automod engine + legacy
+        // anti-link listener). Source of truth for /automod staff list; the
+        // staff command mirrors these ids into exemptRoles + antilink
+        // exemptRoles so both enforcement pipelines pick them up.
+        staffRoleIds: { type: [String], default: [] }
     },
     embed: {
         allowedRoleIds: { type: [String], default: [] }
