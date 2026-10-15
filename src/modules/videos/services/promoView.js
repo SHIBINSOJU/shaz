@@ -1,12 +1,17 @@
 // Components V2 promotion layouts (no legacy embeds — never mixed).
 //
-// Two immediately distinguishable designs, both branded RISE SMP red and
-// both leading with the custom RISE SMP banner artwork:
-//   video -> "🎬 NEW VIDEO IS OUT!"      + "RISE SMP • VIDEO PROMOTION"
-//   live  -> "🔴 STREAM IS LIVE!"        + "RISE SMP • LIVE PROMOTION"
+// Two immediately distinguishable designs, both branded RISE red and both
+// leading with the custom RISE SMP banner artwork:
+//   video -> "🎬 YOUTUBE VIDEO PREMIERE"  + "RISE NETWORK • VIDEO PROMOTION"
+//   live  -> "🔴 YOUTUBE LIVESTREAM"      + "RISE NETWORK • LIVE PROMOTION"
 //
 // The banner is branding artwork only: the YouTube URL always stays the
 // clickable destination (title link + raw URL line + link button).
+//
+// SuppressEmbeds is REQUIRED on the payload: the message contains the raw
+// YouTube URL, and without it Discord appends an automatic link-preview
+// embed that renders the YouTube thumbnail below our content — which would
+// defeat the custom-banner requirement.
 //
 // The VERIFIED LIVE badge is only rendered when the YouTube Data API
 // confirmed the stream is currently live (metadata.verifiedLive === true).
@@ -34,8 +39,8 @@ function divider() {
 
 function footerLine(kind) {
     return kind === 'live'
-        ? '-# RISE SMP • LIVE PROMOTION'
-        : '-# RISE SMP • VIDEO PROMOTION';
+        ? '-# RISE NETWORK • LIVE PROMOTION'
+        : '-# RISE NETWORK • VIDEO PROMOTION';
 }
 
 function liveStatusLine(metadata) {
@@ -58,9 +63,9 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     const avatarUrl = typeof user?.displayAvatarURL === 'function' ? user.displayAvatarURL({ size: 128 }) : null;
 
     const title = metadata?.title || null;
-    const heading = isLive ? '🔴 STREAM IS LIVE!' : '🎬 NEW VIDEO IS OUT!';
+    const heading = isLive ? '🔴 YOUTUBE LIVESTREAM' : '🎬 YOUTUBE VIDEO PREMIERE';
     const intro = isLive
-        ? 'A member of RISE NETWORK is sharing a YouTube livestream!'
+        ? 'A member of RISE NETWORK is sharing a livestream!'
         : 'A new video has been shared by a member of RISE NETWORK!';
 
     const container = new ContainerBuilder().setAccentColor(BRAND_RED);
@@ -69,7 +74,7 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     );
     container.addSeparatorComponents(divider());
 
-    const subjectLabel = isLive ? '🔴 Stream' : '📺 Video';
+    const subjectLabel = isLive ? '📺 Stream' : '📺 Video';
     const subjectValue = title ? `**[${escapeMarkdown(title)}](${videoUrl})**` : `[YouTube link](${videoUrl})`;
     const creatorLabel = isLive ? '👤 Streamer' : '👤 Creator';
     const watchLabel = isLive ? '📺 Watch' : '🔗 Watch';
@@ -108,7 +113,7 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     container.addActionRowComponents(
         new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setLabel(isLive ? '🔴 Watch Stream' : '▶ Watch Video')
+                .setLabel(isLive ? '🔴 Watch Live ↗' : '▶ Watch Video ↗')
                 .setStyle(ButtonStyle.Link)
                 .setURL(videoUrl)
         )
@@ -120,7 +125,10 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     );
 
     return {
-        flags: MessageFlags.IsComponentsV2,
+        // SuppressEmbeds kills Discord's automatic YouTube link-preview
+        // (which would render the YouTube thumbnail under our banner).
+        // It never affects our explicit MediaGallery or button components.
+        flags: [MessageFlags.IsComponentsV2, MessageFlags.SuppressEmbeds],
         components: [container],
         allowedMentions: { parse: [] }
     };

@@ -82,11 +82,6 @@ function normalizeWatchUrl(videoId) {
     return `https://www.youtube.com/watch?v=${videoId}`;
 }
 
-/** Standard thumbnail URL derived from the video ID (always available). */
-function thumbnailFor(videoId) {
-    return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-}
-
 async function fetchJson(url) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -163,9 +158,30 @@ async function fetchViaOEmbed(normalizedUrl) {
 }
 
 /**
+ * Best-effort reachability probe for the custom promotional banner.
+ * Returns true when the URL answers HTTP 2xx, false otherwise — never
+ * throws. A `false` result must only produce a loud log warning: the caller
+ * publishes anyway and must NEVER substitute the YouTube thumbnail.
+ */
+async function checkImageReachable(url, timeoutMs = 5000) {
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, { method: 'HEAD', signal: controller.signal });
+            return response.ok;
+        } finally {
+            clearTimeout(timer);
+        }
+    } catch {
+        return false;
+    }
+}
+
+/**
  * Best-effort metadata. Always resolves (never rejects): when every source
  * fails the caller still gets { source: 'none' } and promotes with the
- * video ID + standard thumbnail instead of invented data.
+ * custom banner + video link instead of invented data.
  */
 async function fetchVideoMetadata(videoId, normalizedUrl, apiKey) {
     const viaApi = await fetchViaDataApi(videoId, apiKey);
@@ -185,7 +201,7 @@ async function fetchVideoMetadata(videoId, normalizedUrl, apiKey) {
 module.exports = {
     parseYouTubeUrl,
     normalizeWatchUrl,
-    thumbnailFor,
     fetchVideoMetadata,
-    isValidVideoId
+    isValidVideoId,
+    checkImageReachable
 };

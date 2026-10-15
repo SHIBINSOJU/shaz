@@ -2,7 +2,7 @@ const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('disc
 const logger = require('../../../core/logger');
 const { getPromoConfig } = require('../services/promoConfig');
 const { checkCooldown, setCooldown, formatCooldown } = require('../services/rateLimit');
-const { parseYouTubeUrl, fetchVideoMetadata } = require('../services/youtube');
+const { parseYouTubeUrl, fetchVideoMetadata, checkImageReachable } = require('../services/youtube');
 const { buildPromoPayload } = require('../services/promoView');
 const videoPromotionRepository = require('../../../database/repositories/videoPromotionRepository');
 
@@ -146,8 +146,22 @@ module.exports = {
 
             setCooldown(interaction.guildId, interaction.user.id);
 
-            // 6. Metadata (best-effort — falls back to ID + thumbnail, never fake).
+            // 6. Metadata (best-effort title/channel — never fake, never a thumbnail).
             const metadata = await fetchVideoMetadata(parsed.videoId, parsed.url, promo.youtubeApiKey);
+
+            // 6b. Banner reliability: must be a plain http(s) URL. A short
+            // reachability probe warns loudly when the artwork is dead, but
+            // publishing still proceeds — never fall back to the YouTube
+            // thumbnail, and never block a valid promotion on an asset check.
+            if (!/^https?:\/\//i.test(promo.bannerUrl || '')) {
+                logger.error(`${where}: youtube_promotion.banner_url is missing or not an http(s) URL — refusing to publish without the custom banner.`);
+                await interaction.editReply({ content: '❌ The promotion banner is misconfigured. Please ask an administrator to check `youtube_promotion.banner_url`.' });
+                return;
+            }
+            const bannerOk = await checkImageReachable(promo.bannerUrl);
+            if (!bannerOk) {
+                logger.warn(`${where}: custom banner URL did not answer HTTP 2xx (it may have expired) — publishing anyway with the configured banner; check youtube_promotion.banner_url.`);
+            }
 
             // 7. Build + publish (the bot posts; success is claimed only after send resolves).
             // The custom RISE SMP banner is branding artwork — the YouTube
