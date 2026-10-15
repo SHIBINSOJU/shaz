@@ -22,8 +22,6 @@ const {
     TextDisplayBuilder,
     SeparatorBuilder,
     SeparatorSpacingSize,
-    SectionBuilder,
-    ThumbnailBuilder,
     MediaGalleryBuilder,
     MediaGalleryItemBuilder,
     ActionRowBuilder,
@@ -60,7 +58,6 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     const user = member?.user || member;
     const mention = member ? `${member}` : (user ? `${user}` : 'Unknown member');
     const displayName = user?.username || 'Unknown member';
-    const avatarUrl = typeof user?.displayAvatarURL === 'function' ? user.displayAvatarURL({ size: 128 }) : null;
 
     const title = metadata?.title || null;
     const heading = isLive ? '🔴 YOUTUBE LIVESTREAM' : '🎬 YOUTUBE VIDEO PREMIERE';
@@ -69,6 +66,9 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
         : 'A new video has been shared by a member of RISE NETWORK!';
 
     const container = new ContainerBuilder().setAccentColor(BRAND_RED);
+    container.addTextDisplayComponents(
+        new TextDisplayBuilder().setContent('@here')
+    );
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`# ${heading}\n${intro}`)
     );
@@ -89,15 +89,9 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
         lines.push('-# This video is scheduled as an upcoming premiere/stream.');
     }
 
-    const section = new SectionBuilder().addTextDisplayComponents(
+    container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(lines.join('\n'))
     );
-    if (avatarUrl) {
-        section.setThumbnailAccessory(
-            new ThumbnailBuilder().setURL(avatarUrl).setDescription(`${displayName}'s avatar`)
-        );
-    }
-    container.addSectionComponents(section);
     container.addSeparatorComponents(divider());
 
     // Custom RISE SMP banner — branding artwork, not the video thumbnail.
@@ -128,9 +122,12 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
         // SuppressEmbeds kills Discord's automatic YouTube link-preview
         // (which would render the YouTube thumbnail under our banner).
         // It never affects our explicit MediaGallery or button components.
+        // NOTE: Components V2 payloads cannot use top-level `content`, so the
+        // @here mention lives in the leading TextDisplay above. `parse: ['here']`
+        // makes it a real ping. Equivalent to content: '@here' for legacy sends.
         flags: [MessageFlags.IsComponentsV2, MessageFlags.SuppressEmbeds],
         components: [container],
-        allowedMentions: { parse: [] }
+        allowedMentions: { parse: ['here'] }
     };
 }
 

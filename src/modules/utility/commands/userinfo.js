@@ -4,9 +4,7 @@ const {
     ContainerBuilder,
     TextDisplayBuilder,
     SeparatorBuilder,
-    SeparatorSpacingSize,
-    SectionBuilder,
-    ThumbnailBuilder
+    SeparatorSpacingSize
 } = require('discord.js');
 const { fail, formatTimestamp } = require('../services/helpers');
 
@@ -37,12 +35,9 @@ module.exports = {
                 : '_No roles_';
 
             const container = new ContainerBuilder().setAccentColor(member?.displayHexColor !== '#000000' ? member.displayColor : BRAND_RED);
-            const section = new SectionBuilder().addTextDisplayComponents(
+            container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 👤 ${target.tag}`)
             );
-            const avatarUrl = member?.displayAvatarURL({ size: 256 }) ?? target.displayAvatarURL({ size: 256 });
-            section.setThumbnailAccessory(new ThumbnailBuilder().setURL(avatarUrl));
-            container.addSectionComponents(section);
             container.addSeparatorComponents(
                 new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
             );
