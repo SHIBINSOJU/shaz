@@ -57,9 +57,9 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     const isLive = kind === 'live';
     const user = member?.user || member;
     const mention = member ? `${member}` : (user ? `${user}` : 'Unknown member');
-    const displayName = user?.username || 'Unknown member';
+    const displayName = neutralizeBroadcasts(user?.username || 'Unknown member');
 
-    const title = metadata?.title || null;
+    const title = metadata?.title ? neutralizeBroadcasts(metadata.title) : null;
     const heading = isLive ? '🔴 YOUTUBE LIVESTREAM' : '🎬 YOUTUBE VIDEO PREMIERE';
     const intro = isLive
         ? 'A member of RISE NETWORK is sharing a livestream!'
@@ -123,16 +123,33 @@ function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
         // (which would render the YouTube thumbnail under our banner).
         // It never affects our explicit MediaGallery or button components.
         // NOTE: Components V2 payloads cannot use top-level `content`, so the
-        // @here mention lives in the leading TextDisplay above. `parse: ['here']`
-        // makes it a real ping. Equivalent to content: '@here' for legacy sends.
+        // @here mention lives in the leading TextDisplay above.
+        // allowedMentions is intentionally OMITTED: 'here' is not a valid
+        // parse enum (valid: 'everyone' | 'users' | 'roles' — discord.js
+        // 14.27.0 AllowedMentionsTypes), so parse: ['here'] throws 50035, and
+        // parse: ['everyone'] would also enable @everyone (forbidden). With
+        // the field omitted Discord default-parses the message, so our @here
+        // pings; neutralizeBroadcasts() above guarantees no bare @everyone
+        // (or second @here) can come from user-controlled title/name text.
+        // (Bot still needs the Mention Everyone permission for @here to fire;
+        // without it the message sends normally with no ping — never an error.)
         flags: [MessageFlags.IsComponentsV2, MessageFlags.SuppressEmbeds],
-        components: [container],
-        allowedMentions: { parse: ['here'] }
+        components: [container]
     };
 }
 
 function escapeMarkdown(value) {
     return String(value).replace(/([\\_*~`|])/g, '\\$1').slice(0, 250);
+}
+
+// Breaks `@everyone` / `@here` inside user-controlled text (video titles,
+// display names) so they can never ping — the same zero-width-space pattern
+// used by the ticket system. Our single intentional `@here` TextDisplay below
+// is added AFTER sanitization, so it stays the only bare broadcast string.
+function neutralizeBroadcasts(value) {
+    return String(value ?? '')
+        .replace(/@everyone/gi, '@\u200beveryone')
+        .replace(/@here/gi, '@\u200bhere');
 }
 
 module.exports = { buildPromoPayload, YOUTUBE_RED: BRAND_RED };
