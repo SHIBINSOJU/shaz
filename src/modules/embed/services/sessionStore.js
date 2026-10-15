@@ -5,7 +5,7 @@
 
 const crypto = require('crypto');
 const logger = require('../../../core/logger');
-const { createDefaultState } = require('./state');
+const { createDefaultState, ensureInitiator } = require('./state');
 
 const sessions = new Map();
 
@@ -19,11 +19,16 @@ function createSession({ userId, guildId, channelId, timeoutMs }) {
         channelId,
         messageId: null,
         state: createDefaultState(),
+        // initiatorUserId mirrors the pinned identity inside state.initiator.
+        initiatorUserId: String(userId),
         pendingAction: null, // 'edit' | 'remove' | 'up' | 'down' | null (block-picker select)
         createdAt: now,
         expiresAt: now + timeoutMs,
         timeout: null
     };
+    // Pin the initiator identity to the session creator (live avatar/name are
+    // resolved at render time, so avatar changes are picked up automatically).
+    ensureInitiator(session.state, userId);
     session.timeout = setTimeout(() => expireSession(id, 'timeout'), timeoutMs);
     sessions.set(id, session);
     return session;

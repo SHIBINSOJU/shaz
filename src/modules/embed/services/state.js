@@ -19,8 +19,25 @@ function createDefaultState() {
         header: { enabled: true, text: '🎉 Welcome to our server!' },
         blocks: [],
         thumbnail: { enabled: false, url: '', description: '' },
-        footer: { enabled: true, text: RISE_EMOJI }
+        footer: { enabled: true, text: RISE_EMOJI },
+        // Optional initiator/author display. OFF by default. `userId` is pinned
+        // to the session creator (see sessionStore) — never user-submitted text.
+        // Templates must re-pin userId to the NEW session creator on load.
+        initiator: { show: false, label: '', userId: null }
     };
+}
+
+// Normalizes the initiator sub-state for sessions created before this feature
+// existed, and re-pins identity when loading a template as a new session.
+function ensureInitiator(state, userId) {
+    if (!state.initiator || typeof state.initiator !== 'object') {
+        state.initiator = { show: false, label: '', userId: null };
+    }
+    if (typeof state.initiator.show !== 'boolean') state.initiator.show = false;
+    if (typeof state.initiator.label !== 'string') state.initiator.label = '';
+    // Identity always follows the live session owner — never a stored template author.
+    if (userId) state.initiator.userId = String(userId);
+    return state.initiator;
 }
 
 function createTextBlock(content = '') {
@@ -87,6 +104,7 @@ const { BRAND_RED } = require('../../../utils/brandColor');
 module.exports = {
     RISE_EMOJI,
     createDefaultState,
+    ensureInitiator,
     createTextBlock,
     createSeparatorBlock,
     createMediaBlock,

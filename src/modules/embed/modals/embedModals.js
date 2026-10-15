@@ -9,7 +9,8 @@ const {
     createButtonsBlock,
     getBlock,
     removeBlock,
-    countByType
+    countByType,
+    ensureInitiator
 } = require('../services/state');
 const { isHttpUrl, wouldOverflow } = require('../services/validator');
 const { loadSession, refreshDashboard, notifyEphemeral } = require('../services/interactions');
@@ -141,6 +142,13 @@ module.exports = {
                     const text = field(interaction, 'text');
                     session.state.footer.text = text;
                     session.state.footer.enabled = text.length > 0;
+                    break;
+                }
+                case 'initiatorlabel': {
+                    // Optional branding label above the author section.
+                    // Empty = omitted completely. Never touches show ON/OFF.
+                    const initiator = ensureInitiator(session.state, session.userId);
+                    initiator.label = field(interaction, 'label').slice(0, 200);
                     break;
                 }
                 case 'style': {

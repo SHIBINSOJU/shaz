@@ -11,6 +11,7 @@ const logger = require('../../../core/logger');
 const { getEmbedBuilderConfig } = require('../config');
 const {
     createDefaultState,
+    ensureInitiator,
     RISE_EMOJI,
     createSeparatorBlock,
     countByType,
@@ -157,6 +158,28 @@ module.exports = {
                         })
                     ]);
                     break;
+                case 'initiator': {
+                    // Owner-only: loadSession already rejected other users.
+                    // Flip show ON/OFF in place — all other state is preserved —
+                    // then re-render the preview immediately.
+                    const initiator = ensureInitiator(session.state, session.userId);
+                    initiator.show = !initiator.show;
+                    session.pendingAction = null;
+                    await refreshDashboard(interaction, session);
+                    break;
+                }
+                case 'initiatorlabel': {
+                    const initiator = ensureInitiator(session.state, session.userId);
+                    await showModal(interaction, `embed:modal:initiatorlabel:${session.id}`,
+                        'Author Label', [
+                        textInput('label', 'Small label above the author (empty = none)', {
+                            required: false, maxLength: 200,
+                            value: initiator.label || '',
+                            placeholder: 'RISE NETWORK • OFFICIAL ANNOUNCEMENT'
+                        })
+                    ]);
+                    break;
+                }
                 case 'edit':
                 case 'remove':
                 case 'up':
@@ -171,11 +194,15 @@ module.exports = {
                 case 'send':
                     await handleSend(interaction, session);
                     break;
-                case 'reset':
+                case 'reset': {
+                    // Fresh defaults, but the initiator identity stays pinned to
+                    // the session creator (a reset never adopts another identity).
                     session.state = createDefaultState();
+                    ensureInitiator(session.state, session.userId);
                     session.pendingAction = null;
                     await refreshDashboard(interaction, session);
                     break;
+                }
                 case 'cancel': {
                     const sid = session.id;
                     destroySession(sid);

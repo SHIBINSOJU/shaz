@@ -43,10 +43,66 @@ function resolveSectionTexts(state, member) {
     return { headerText, firstTextIndex, firstText };
 }
 
+// Display names/labels are author-controlled text: collapse newlines and break
+// @everyone/@here so the initiator section can never smuggle a broadcast ping
+// (the final send carries no restrictive allowedMentions scope by design).
+function sanitizeAuthorText(value, max = 100) {
+    return String(value ?? '')
+        .replace(/[\r\n]+/g, ' ')
+        .replace(/@everyone/gi, '@\u200beveryone')
+        .replace(/@here/gi, '@\u200bhere')
+        .trim()
+        .slice(0, max);
+}
+
+// Resolves the pinned session initiator to live display info. Avatar and name
+// come from the CURRENT member object (fresh URL every render), while identity
+// is pinned via state.initiator.userId (the session creator). Returns null
+// when the feature is off or identity cannot be resolved.
+function resolveInitiator(state, member) {
+    const initiator = state.initiator;
+    if (!initiator || initiator.show !== true) return null;
+    const user = member?.user;
+    if (!user || typeof user.displayAvatarURL !== 'function') return null;
+    if (initiator.userId && String(member.user.id) !== String(initiator.userId)) return null;
+    const name = sanitizeAuthorText(member.displayName ?? user.username ?? 'Unknown', 100);
+    if (!name) return null;
+    let avatarUrl = null;
+    try {
+        avatarUrl = user.displayAvatarURL({ size: 128 }) || null;
+    } catch {
+        avatarUrl = null;
+    }
+    if (!avatarUrl) return null;
+    const label = initiator.label && initiator.label.trim()
+        ? sanitizeAuthorText(initiator.label, 200)
+        : null;
+    return { name, avatarUrl, label };
+}
+
 function buildMessage(state, member = null) {
     const container = new ContainerBuilder();
     if (state.accent !== null && state.accent !== undefined) {
         container.setAccentColor(state.accent);
+    }
+
+    // Optional initiator/author display — first in the container, shared by the
+    // live preview and the final send (both call this function). When OFF (or
+    // unresolvable) nothing is added: no empty section, no unused avatar.
+    const initiator = resolveInitiator(state, member);
+    if (initiator) {
+        if (initiator.label) {
+            container.addTextDisplayComponents(
+                new TextDisplayBuilder().setContent(`-# ${initiator.label}`)
+            );
+        }
+        const section = new SectionBuilder().addTextDisplayComponents(
+            new TextDisplayBuilder().setContent(`## ${initiator.name}`)
+        );
+        section.setThumbnailAccessory(
+            new ThumbnailBuilder().setURL(initiator.avatarUrl).setDescription(`${initiator.name}'s avatar`)
+        );
+        container.addSectionComponents(section);
     }
 
     const { headerText, firstTextIndex, firstText } = resolveSectionTexts(state, member);
@@ -150,4 +206,4 @@ function hasContent(state) {
     });
 }
 
-module.exports = { buildMessage, hasContent };
+module.exports = { buildMessage, hasContent, resolveInitiator };

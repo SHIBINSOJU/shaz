@@ -87,8 +87,14 @@ function validateState(state, limits) {
         errors.push('Accent color is invalid. Use a hex color like #E53935.');
     }
 
+    if (state.initiator?.label && state.initiator.label.length > 200) {
+        errors.push(`Author label is too long (${state.initiator.label.length}/200 characters).`);
+    }
+
     // Rendered container children must stay within the Discord limit.
-    const children = (state.header.enabled && state.header.text.trim() ? 1 : 0)
+    // The initiator section contributes up to 2 children (label + section).
+    const children = (state.initiator?.show ? (state.initiator.label?.trim() ? 2 : 1) : 0)
+        + (state.header.enabled && state.header.text.trim() ? 1 : 0)
         + state.blocks.length
         + (state.footer.enabled && state.footer.text.trim() ? 2 : 0);
     if (children > limits.maxContainerChildren) {
@@ -100,7 +106,8 @@ function validateState(state, limits) {
 
 // Would adding `addCount` more top-level blocks overflow the container?
 function wouldOverflow(state, addCount, limits) {
-    const children = (state.header.enabled && state.header.text.trim() ? 1 : 0)
+    const children = (state.initiator?.show ? (state.initiator.label?.trim() ? 2 : 1) : 0)
+        + (state.header.enabled && state.header.text.trim() ? 1 : 0)
         + state.blocks.length + addCount
         + (state.footer.enabled && state.footer.text.trim() ? 2 : 0);
     return children > limits.maxContainerChildren;

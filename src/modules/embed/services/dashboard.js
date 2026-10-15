@@ -73,6 +73,17 @@ function buildDashboard(session, member = null) {
             button(`embed:send:${sid}`, 'Send', '📤', ButtonStyle.Success),
             button(`embed:reset:${sid}`, 'Reset', '🔄'),
             button(`embed:cancel:${sid}`, 'Cancel', '❌', ButtonStyle.Danger)
+        ),
+        // Initiator/author display controls. Toggle flips show ON/OFF and
+        // re-renders the preview; label opens a text modal (empty = no label).
+        new ActionRowBuilder().addComponents(
+            button(
+                `embed:initiator:${sid}`,
+                state.initiator?.show ? 'Initiator: ON' : 'Initiator: OFF',
+                '👤',
+                state.initiator?.show ? ButtonStyle.Success : ButtonStyle.Secondary
+            ),
+            button(`embed:initiatorlabel:${sid}`, 'Author Label', '🏷️')
         )
     ];
 
