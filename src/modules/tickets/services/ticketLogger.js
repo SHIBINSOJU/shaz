@@ -64,7 +64,7 @@ async function resolveTicketLogChannel(guild) {
  * NO-MENTION POLICY: every log is plain text (see ticketIdentity) and is
  * sent with explicit `allowedMentions` blocking all pings.
  */
-async function logTicket(guild, { title, accent = 0x5865F2, fields = [] }) {
+async function logTicket(guild, { title, accent = BRAND_RED, fields = [] }) {
     try {
         const channel = await resolveTicketLogChannel(guild);
         if (!channel) return false;
@@ -318,7 +318,7 @@ async function addViewTranscriptButton(message, payload, attachmentUrl) {
  * Generic log entry WITH a transcript file attachment.
  * Same return contract as sendPayloadWithTranscriptFile (object, not bool).
  */
-async function logTicketWithFile(guild, { title, accent = 0x5865F2, fields = [], fileBuffer, filename }) {
+async function logTicketWithFile(guild, { title, accent = BRAND_RED, fields = [], fileBuffer, filename }) {
     try {
         const channel = await resolveTicketLogChannel(guild);
         if (!channel) return { ok: false, error: 'no-log-channel' };
@@ -418,6 +418,8 @@ async function logTicketDeletedWithTranscript(guild, data) {
         return { ok: false, error: error.message || 'log-failed' };
     }
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = {
     logTicket,

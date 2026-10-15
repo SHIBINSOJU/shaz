@@ -4,6 +4,8 @@ const { isDatabaseReady } = require('../../../database/connection');
 const { fail, formatDuration } = require('../services/helpers');
 const { version: botVersion } = require('../../../../package.json');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('botinfo')
@@ -34,7 +36,7 @@ module.exports = {
                         { label: 'Database', value: isDatabaseReady() ? '🟢 Connected' : '🔴 Disconnected' },
                         { label: 'Bot latency', value: client.ws.ping >= 0 ? `${client.ws.ping}ms` : 'Unavailable' }
                     ],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2]
             });

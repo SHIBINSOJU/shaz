@@ -121,7 +121,7 @@ module.exports = {
                         textInput('color', 'Accent color hex (empty = default)', {
                             required: false, maxLength: 7,
                             value: accentToHex(session.state.accent),
-                            placeholder: '#5865F2'
+                            placeholder: '#E53935'
                         })
                     ]);
                     break;

@@ -122,7 +122,7 @@ function buildStatusResponse(snapshot, { throttled = false } = {}) {
     if (attachment && online) files.push(attachment);
     const hasThumbnail = files.length > 0;
 
-    const container = new ContainerBuilder().setAccentColor(snapshot.accentColor ?? 0x5865F2);
+    const container = new ContainerBuilder().setAccentColor(snapshot.accentColor ?? BRAND_RED);
     const divider = () => new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
 
     const headerText = `## 🎮 ${snapshot.serverName || 'RISE SMP'}\n${statusBadge(online)}`;
@@ -193,7 +193,7 @@ function buildPlayersResponse(snapshot) {
     const playersOnline = Number(snapshot.players?.online) || 0;
     const playersMax = Number(snapshot.players?.max) || 0;
 
-    const container = new ContainerBuilder().setAccentColor(snapshot.accentColor ?? 0x5865F2);
+    const container = new ContainerBuilder().setAccentColor(snapshot.accentColor ?? BRAND_RED);
 
     let body;
     if (!online) {
@@ -224,5 +224,7 @@ function buildPlayersResponse(snapshot) {
         allowedMentions: NO_MENTIONS
     };
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = { buildStatusResponse, buildPlayersResponse, formatUptime, absoluteTimestamp, _internal: { stripCodes, namesLine, faviconAttachment } };

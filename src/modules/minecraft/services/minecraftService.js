@@ -9,6 +9,7 @@ const {
     MessageFlags
 } = require('discord.js');
 const configService = require('../../../core/configService');
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 // ---------------------------------------------------------------------------
 // Centralized Bedrock connection details — SINGLE source of truth.
@@ -130,7 +131,7 @@ function getMinecraftConfig() {
     const java = ipResp.java || {};
     const bedrock = ipResp.bedrock || {};
 
-    let accent = 0x5865F2;
+    let accent = BRAND_RED;
     if (raw.accentColor) {
         const hex = String(raw.accentColor).replace(/^#/, '');
         const parsed = parseInt(hex, 16);

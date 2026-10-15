@@ -26,6 +26,8 @@ const {
 const { logTicket } = require('../services/ticketLogger');
 const { safePlainText, resolveTicketChannelName } = require('../services/ticketIdentity');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ticket')
@@ -276,7 +278,7 @@ async function addMember(interaction) {
     await interaction.editReply(`✅ ${targetName} was added to this ticket.`);
     await logTicket(interaction.guild, {
         title: '➕ User Added to Ticket',
-        accent: 0x5865F2,
+        accent: BRAND_RED,
         fields: [
             { label: 'Ticket', value: await resolveTicketChannelName(interaction.guild, ticket) },
             { label: 'Ticket ID', value: `#${ticket.number}` },
@@ -442,7 +444,7 @@ async function showConfig(interaction) {
                 { label: 'On close', value: config.close.deleteImmediately ? 'Delete channel' : `Archive${config.close.closedCategoryId ? ` → <#${config.close.closedCategoryId}>` : ''}` },
                 ...categories
             ],
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Categories and staff roles are configured in config.yml under tickets:.'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
@@ -465,7 +467,7 @@ async function showStatus(interaction) {
                 },
                 { label: 'System', value: config.enabled ? '🟢 Enabled' : '🔴 Disabled' }
             ],
-            accent: 0x5865F2
+            accent: BRAND_RED
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
     });

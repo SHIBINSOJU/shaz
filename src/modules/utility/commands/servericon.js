@@ -13,6 +13,8 @@ const {
 } = require('discord.js');
 const { fail } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('servericon')
@@ -31,7 +33,7 @@ module.exports = {
                 return;
             }
 
-            const container = new ContainerBuilder().setAccentColor(0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(BRAND_RED);
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 🖼️ ${interaction.guild.name}`)
             );

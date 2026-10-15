@@ -23,6 +23,7 @@ const {
     MessageFlags
 } = require('discord.js');
 const logger = require('../../../core/logger');
+const { BRAND_RED } = require('../../../utils/brandColor');
 const ticketRepository = require('../../../database/repositories/ticketRepository');
 const { resolveTicketsConfig, getCategory } = require('../config');
 const {
@@ -334,7 +335,7 @@ async function handleDeleteCancel(interaction, ticketId) {
                 ...buildInfoContainer({
                     header: 'Delete cancelled',
                     fields: [{ label: 'Note', value: 'The ticket was not deleted.' }],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
             });
@@ -354,7 +355,7 @@ async function handleCloseCancel(interaction, ticketId) {
                 ...buildInfoContainer({
                     header: 'Close cancelled',
                     fields: [{ label: 'Note', value: 'The ticket stays open.' }],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
             });

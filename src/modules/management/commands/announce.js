@@ -33,6 +33,8 @@ function isHttpUrl(value) {
     }
 }
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('announce')
@@ -41,7 +43,7 @@ module.exports = {
         .addStringOption(o => o.setName('description').setDescription('Announcement body').setRequired(true).setMaxLength(2000))
         .addChannelOption(o => o.setName('channel').setDescription('Where to send it (defaults to this channel)').setRequired(false))
         .addStringOption(o => o.setName('image').setDescription('Image URL to attach').setRequired(false))
-        .addStringOption(o => o.setName('color').setDescription('Accent color hex, e.g. #5865F2').setRequired(false))
+        .addStringOption(o => o.setName('color').setDescription('Accent color hex, e.g. #E53935').setRequired(false))
         .addStringOption(o => o.setName('footer').setDescription('Footer line').setRequired(false).setMaxLength(200))
         .addRoleOption(o => o.setName('mention_role').setDescription('Role to mention').setRequired(false))
         .addBooleanOption(o => o.setName('ping_everyone').setDescription('Mention @everyone (needs Mention Everyone permission)').setRequired(false)),
@@ -77,7 +79,7 @@ module.exports = {
             }
             const color = parseColor(colorInput);
             if (colorInput && color === null) {
-                await interaction.editReply({ content: '❌ Color must be a hex value like `#5865F2`.' });
+                await interaction.editReply({ content: '❌ Color must be a hex value like `#E53935`.' });
                 return;
             }
             if (pingEveryone && !(interaction.memberPermissions?.has(PermissionFlagsBits.MentionEveryone) ?? false)) {
@@ -85,7 +87,7 @@ module.exports = {
                 return;
             }
 
-            const container = new ContainerBuilder().setAccentColor(color ?? 0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(color ?? BRAND_RED);
             const mentionLine = pingEveryone ? '@everyone\n\n' : mentionRole ? `${mentionRole}\n\n` : '';
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 📢 ${title}`)

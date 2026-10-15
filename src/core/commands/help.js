@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, MessageFlags, PermissionsBitField } = require('discord.js');
 const { buildInfoContainer } = require('../../utils/componentsV2');
 
+const { BRAND_RED } = require('../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
@@ -52,7 +54,7 @@ async function showCommandList(interaction, ctx) {
         ...buildInfoContainer({
             header: `📖 Bot Help — **${mm.commands.size}** commands across **${groups.size}** modules`,
             fields,
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Use /help command:<name> for details about a specific command.'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
@@ -95,7 +97,7 @@ async function showCommandDetails(interaction, ctx, name) {
                 { label: 'Permissions', value: permissions },
                 { label: 'Options', value: options }
             ],
-            accent: 0x5865F2
+            accent: BRAND_RED
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
     });

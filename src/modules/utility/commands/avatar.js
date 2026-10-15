@@ -13,6 +13,8 @@ const {
 } = require('discord.js');
 const { fail } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('avatar')
@@ -33,7 +35,7 @@ module.exports = {
             const animated = (member?.avatar ?? user.avatar)?.startsWith('a_') ?? false;
             const type = member?.avatar ? 'Server avatar' : (user.avatar ? 'Global avatar' : 'Default avatar');
 
-            const container = new ContainerBuilder().setAccentColor(0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(BRAND_RED);
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 🖼️ Avatar — ${user.tag}`)
             );

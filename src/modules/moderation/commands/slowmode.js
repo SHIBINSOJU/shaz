@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const { logAction } = require('../services/modLogger');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('slowmode')
@@ -46,7 +48,7 @@ module.exports = {
 
         await logAction(interaction.guild, {
             title: '🐌 Slowmode Updated',
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             fields: [
                 { label: 'Channel', value: `${channel} (\`${channel.id}\`)` },
                 { label: 'Moderator', value: `${interaction.user} (\`${interaction.user.id}\`)` },

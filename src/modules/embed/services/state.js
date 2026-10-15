@@ -15,7 +15,7 @@ function newBlockId() {
 
 function createDefaultState() {
     return {
-        accent: 0x5865F2,
+        accent: BRAND_RED,
         header: { enabled: true, text: '🎉 Welcome to our server!' },
         blocks: [],
         thumbnail: { enabled: false, url: '', description: '' },
@@ -81,6 +81,8 @@ function describeBlock(block, index) {
             return `#${n} ${block.type}`;
     }
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = {
     RISE_EMOJI,

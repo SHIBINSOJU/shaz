@@ -8,8 +8,9 @@ const {
     ButtonBuilder,
     ButtonStyle
 } = require('discord.js');
+const { BRAND_RED } = require('../../../utils/brandColor');
 
-const STATUS_ACCENT = { pending: 0x5865F2, approved: 0x57F287, rejected: 0xED4245 };
+const STATUS_ACCENT = { pending: BRAND_RED, approved: 0x57F287, rejected: 0xED4245 };
 const STATUS_LINE = {
     pending: '⏳ Status: Pending review',
     approved: '✅ Status: Approved',
@@ -17,7 +18,7 @@ const STATUS_LINE = {
 };
 
 function buildSuggestionPayload(suggestion, reviewerTag = null) {
-    const container = new ContainerBuilder().setAccentColor(STATUS_ACCENT[suggestion.status] ?? 0x5865F2);
+    const container = new ContainerBuilder().setAccentColor(STATUS_ACCENT[suggestion.status] ?? BRAND_RED);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent('## 💡 Suggestion')
     );

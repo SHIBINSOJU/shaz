@@ -6,6 +6,8 @@ const {
 const { buildInfoContainer } = require('../../../utils/componentsV2');
 const { fail, formatTimestamp, countMembers } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('serverinfo')
@@ -44,7 +46,7 @@ module.exports = {
                         { label: 'Boost level', value: `Level ${guild.premiumTier}` },
                         { label: 'Boosts', value: `${guild.premiumSubscriptionCount ?? 0}` }
                     ],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2]
             });

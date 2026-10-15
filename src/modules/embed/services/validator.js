@@ -84,7 +84,7 @@ function validateState(state, limits) {
 
     if (state.accent !== null && state.accent !== undefined
         && (!Number.isInteger(state.accent) || state.accent < 0 || state.accent > 0xFFFFFF)) {
-        errors.push('Accent color is invalid. Use a hex color like #5865F2.');
+        errors.push('Accent color is invalid. Use a hex color like #E53935.');
     }
 
     // Rendered container children must stay within the Discord limit.

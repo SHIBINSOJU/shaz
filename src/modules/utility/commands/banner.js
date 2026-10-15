@@ -13,6 +13,8 @@ const {
 } = require('discord.js');
 const { fail } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('banner')
@@ -32,7 +34,7 @@ module.exports = {
                 return;
             }
 
-            const container = new ContainerBuilder().setAccentColor(user.accentColor ?? 0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(user.accentColor ?? BRAND_RED);
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 🎆 Banner — ${user.tag}`)
             );

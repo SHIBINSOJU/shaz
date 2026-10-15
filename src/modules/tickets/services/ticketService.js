@@ -361,7 +361,7 @@ async function claimTicket({ guild, member, ticket, config }) {
 
         await logTicket(guild, {
             title: '👤 Ticket Claimed',
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             fields: [
                 { label: 'Ticket ID', value: `#${ticket.number}` },
                 { label: 'Ticket', value: await resolveTicketChannelName(guild, ticket) },
@@ -444,7 +444,7 @@ async function closeTicket({ client, guild, member, ticket, config }) {
                 if (autoTranscript.ok) {
                     await logTicketWithFile(guild, {
                         title: '📄 Ticket Transcript (auto-delete on close)',
-                        accent: 0x5865F2,
+                        accent: BRAND_RED,
                         fields: [
                             { label: 'Ticket ID', value: `#${ticket.number}` },
                             { label: 'Ticket', value: await resolveTicketChannelName(guild, ticket) },
@@ -809,7 +809,7 @@ async function sendTranscript({ guild, member, ticket, config }) {
     }
     const sent = await logTicketWithFile(guild, {
         title: '📄 Ticket Transcript',
-        accent: 0x5865F2,
+        accent: BRAND_RED,
         fields: [
             { label: 'Ticket ID', value: `#${ticket.number}` },
             { label: 'Ticket', value: await resolveTicketChannelName(guild, ticket) },
@@ -846,7 +846,7 @@ async function renameTicket({ guild, member, ticket, name }) {
     const renamer = safePlainText(member.displayName || member.user?.username, 100);
     await logTicket(guild, {
         title: '✏️ Ticket Renamed',
-        accent: 0x5865F2,
+        accent: BRAND_RED,
         fields: [
             { label: 'Ticket ID', value: `#${ticket.number}` },
             { label: 'Ticket', value: `#${clean}` },
@@ -856,6 +856,8 @@ async function renameTicket({ guild, member, ticket, name }) {
     });
     return { ok: true, name: clean };
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = {
     REASON_MIN,

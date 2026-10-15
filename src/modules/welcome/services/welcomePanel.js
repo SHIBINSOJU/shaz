@@ -18,8 +18,9 @@ const {
     escapeMarkdown
 } = require('discord.js');
 const WelcomeBuilder = require('./WelcomeBuilder');
+const { BRAND_RED } = require('../../../utils/brandColor');
 
-const ACCENT = 0x5865F2;
+const ACCENT = BRAND_RED;
 const PREVIEW_MAX = 300;
 
 // Documentation only — placeholder expansion stays in src/utils/placeholders.js.

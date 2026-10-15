@@ -15,6 +15,8 @@ const { buildInfoContainer } = require('../../../utils/componentsV2');
 const { getEmbedBuilderConfig } = require('../config');
 const { canConfigureEmbed, getEffectiveAllowedRoleIds } = require('../services/permissions');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('embedconfig')
@@ -110,7 +112,7 @@ async function roleList(interaction) {
                 { label: 'Administrators', value: '✅ Always allowed' },
                 { label: 'Authorized roles', value: lines.length > 0 ? lines.join(', ') : '_none — owner/admin only_' }
             ],
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Manage with /embedconfig role-add / role-remove (owner/admin only).'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]

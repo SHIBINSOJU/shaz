@@ -2,6 +2,8 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { buildInfoContainer } = require('../../../utils/componentsV2');
 const { fail, countMembers } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('membercount')
@@ -23,7 +25,7 @@ module.exports = {
                         { label: '🤖 Bots', value: `${bots}` },
                         { label: '👤 Humans', value: `${humans}` }
                     ],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2]
             });

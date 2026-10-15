@@ -22,14 +22,14 @@ function hexToInt(accent) {
         const match = accent.trim().match(/^#?([0-9a-f]{6})$/i);
         if (match) return parseInt(match[1], 16);
     }
-    return 0x5865F2;
+    return BRAND_RED;
 }
 
 function buildPanel(config) {
     const panelId = crypto.randomBytes(4).toString('hex');
     const categories = Object.entries(config.categories || {});
 
-    const container = new ContainerBuilder().setAccentColor(0x5865F2);
+    const container = new ContainerBuilder().setAccentColor(BRAND_RED);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`## ${config.panel.title}`)
     );
@@ -229,6 +229,8 @@ function buildDeleteConfirm(ticket, category) {
         components: [container]
     };
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = {
     buildPanel,

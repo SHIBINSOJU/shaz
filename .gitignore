@@ -1,5 +1,9 @@
 .env
 node_modules/
-logs/
-data/
+# Root-only ignores (leading slash): the runtime log-file directory and the
+# local fallback-data directory. Unanchored patterns would also match
+# src/modules/logs/ and silently exclude the server-logging module from git.
+# If src/modules/logs/* shows as untracked, run: git add src/modules/logs
+/logs/
+/data/
 .DS_Store

@@ -16,6 +16,11 @@ const DEFAULTS = {
     duplicateCooldownSeconds: 1800
 };
 
+// Custom RISE SMP banner (branding artwork). Centrally managed via
+// `youtube_promotion.banner_url` (or per-guild `youtubePromotion.bannerUrl`);
+// this constant is only the fallback when neither is set.
+const DEFAULT_BANNER_URL = 'https://cdn.discordapp.com/attachments/1478552075469324389/1560015598514339850/IMG_7251.png?ex=6ad12d3e&is=6acfdbbe&hm=0e75236e9ec3ca9abfd30f6d9b76b45d9f884b046b3272dd097e959aece6aebf&';
+
 function toPositiveInt(value, fallback) {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0) return fallback;
@@ -59,8 +64,10 @@ async function getPromoConfig(guildId) {
         ),
         // Env var wins; the file value is only a fallback. Never logged.
         youtubeApiKey: (process.env.YOUTUBE_API_KEY || '').trim()
-            || String(file.youtube_api_key || '').trim()
+            || String(file.youtube_api_key || '').trim(),
+        // Centrally managed banner; per-guild override wins over file config.
+        bannerUrl: pick(overrides.bannerUrl, file.banner_url || file.bannerUrl) || DEFAULT_BANNER_URL
     };
 }
 
-module.exports = { getPromoConfig, DEFAULTS };
+module.exports = { getPromoConfig, DEFAULTS, DEFAULT_BANNER_URL };

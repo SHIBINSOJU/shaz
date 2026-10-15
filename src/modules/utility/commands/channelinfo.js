@@ -17,6 +17,8 @@ const TYPE_NAMES = {
     [ChannelType.GroupDM]: 'Group DM'
 };
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('channelinfo')
@@ -53,7 +55,7 @@ module.exports = {
             }
 
             await interaction.editReply({
-                ...buildInfoContainer({ header: `📺 #${channel.name ?? 'Channel'}`, fields, accent: 0x5865F2 }),
+                ...buildInfoContainer({ header: `📺 #${channel.name ?? 'Channel'}`, fields, accent: BRAND_RED }),
                 flags: [MessageFlags.IsComponentsV2]
             });
         } catch (error) {

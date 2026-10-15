@@ -2,6 +2,8 @@ const { SlashCommandBuilder, MessageFlags } = require('discord.js');
 const { buildInfoContainer } = require('../../../utils/componentsV2');
 const { fail, formatTimestamp } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('roleinfo')
@@ -38,7 +40,7 @@ module.exports = {
                         { label: 'Displayed separately (hoisted)', value: role.hoist ? 'Yes' : 'No' },
                         { label: 'Created', value: formatTimestamp(role.createdAt) }
                     ],
-                    accent: role.color !== 0 ? role.color : 0x5865F2
+                    accent: role.color !== 0 ? role.color : BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2]
             });

@@ -1,8 +1,12 @@
 // Components V2 promotion layouts (no legacy embeds — never mixed).
 //
-// Two immediately distinguishable designs:
-//   video -> 🎬 red "YOUTUBE VIDEO PREMIERE"
-//   live  -> 🔴 red "YOUTUBE LIVE STREAM" with a live-status line
+// Two immediately distinguishable designs, both branded RISE SMP red and
+// both leading with the custom RISE SMP banner artwork:
+//   video -> "🎬 NEW VIDEO IS OUT!"      + "RISE SMP • VIDEO PROMOTION"
+//   live  -> "🔴 STREAM IS LIVE!"        + "RISE SMP • LIVE PROMOTION"
+//
+// The banner is branding artwork only: the YouTube URL always stays the
+// clickable destination (title link + raw URL line + link button).
 //
 // The VERIFIED LIVE badge is only rendered when the YouTube Data API
 // confirmed the stream is currently live (metadata.verifiedLive === true).
@@ -22,8 +26,7 @@ const {
     ButtonStyle,
     MessageFlags
 } = require('discord.js');
-
-const YOUTUBE_RED = 0xFF0000;
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 function divider() {
     return new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small);
@@ -31,8 +34,8 @@ function divider() {
 
 function footerLine(kind) {
     return kind === 'live'
-        ? '-# RISE NETWORK • LIVE PROMOTION'
-        : '-# RISE NETWORK • VIDEO PROMOTION';
+        ? '-# RISE SMP • LIVE PROMOTION'
+        : '-# RISE SMP • VIDEO PROMOTION';
 }
 
 function liveStatusLine(metadata) {
@@ -47,7 +50,7 @@ function liveStatusLine(metadata) {
  * Every field with unavailable data is omitted — no placeholders, no
  * invented titles. Creator identity always comes from the Discord member.
  */
-function buildPromoPayload({ kind, metadata, videoUrl, thumbnailUrl, member }) {
+function buildPromoPayload({ kind, metadata, videoUrl, bannerUrl, member }) {
     const isLive = kind === 'live';
     const user = member?.user || member;
     const mention = member ? `${member}` : (user ? `${user}` : 'Unknown member');
@@ -55,12 +58,12 @@ function buildPromoPayload({ kind, metadata, videoUrl, thumbnailUrl, member }) {
     const avatarUrl = typeof user?.displayAvatarURL === 'function' ? user.displayAvatarURL({ size: 128 }) : null;
 
     const title = metadata?.title || null;
-    const heading = isLive ? '🔴 YOUTUBE LIVE STREAM' : '🎬 YOUTUBE VIDEO PREMIERE';
+    const heading = isLive ? '🔴 STREAM IS LIVE!' : '🎬 NEW VIDEO IS OUT!';
     const intro = isLive
         ? 'A member of RISE NETWORK is sharing a YouTube livestream!'
         : 'A new video has been shared by a member of RISE NETWORK!';
 
-    const container = new ContainerBuilder().setAccentColor(YOUTUBE_RED);
+    const container = new ContainerBuilder().setAccentColor(BRAND_RED);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`# ${heading}\n${intro}`)
     );
@@ -69,7 +72,7 @@ function buildPromoPayload({ kind, metadata, videoUrl, thumbnailUrl, member }) {
     const subjectLabel = isLive ? '🔴 Stream' : '📺 Video';
     const subjectValue = title ? `**[${escapeMarkdown(title)}](${videoUrl})**` : `[YouTube link](${videoUrl})`;
     const creatorLabel = isLive ? '👤 Streamer' : '👤 Creator';
-    const watchLabel = isLive ? '📺 Watch Live' : '🔗 Watch Video';
+    const watchLabel = isLive ? '📺 Watch' : '🔗 Watch';
     const lines = [
         `${subjectLabel}: ${subjectValue}`,
         `${creatorLabel}: ${mention} (\`${escapeMarkdown(displayName)}\`)`,
@@ -92,18 +95,20 @@ function buildPromoPayload({ kind, metadata, videoUrl, thumbnailUrl, member }) {
     container.addSectionComponents(section);
     container.addSeparatorComponents(divider());
 
+    // Custom RISE SMP banner — branding artwork, not the video thumbnail.
+    // The YouTube URL above and the button below stay the destinations.
     container.addMediaGalleryComponents(
         new MediaGalleryBuilder().addItems(
             new MediaGalleryItemBuilder()
-                .setURL(thumbnailUrl)
-                .setDescription(title || (isLive ? 'YouTube livestream thumbnail' : 'YouTube video thumbnail'))
+                .setURL(bannerUrl)
+                .setDescription('RISE SMP promotional banner')
         )
     );
 
     container.addActionRowComponents(
         new ActionRowBuilder().addComponents(
             new ButtonBuilder()
-                .setLabel(isLive ? '🔴 Watch Live' : '▶ Watch Video')
+                .setLabel(isLive ? '🔴 Watch Stream' : '▶ Watch Video')
                 .setStyle(ButtonStyle.Link)
                 .setURL(videoUrl)
         )
@@ -125,4 +130,4 @@ function escapeMarkdown(value) {
     return String(value).replace(/([\\_*~`|])/g, '\\$1').slice(0, 250);
 }
 
-module.exports = { buildPromoPayload, YOUTUBE_RED };
+module.exports = { buildPromoPayload, YOUTUBE_RED: BRAND_RED };

@@ -38,6 +38,8 @@ function ruleOption(option) {
     return option;
 }
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('automod')
@@ -402,7 +404,7 @@ async function showStatus(interaction) {
                     ].join('\n')
                 }
             ],
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Use /automod config for thresholds, actions, exemptions, and word count.'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
@@ -435,7 +437,7 @@ async function showConfig(interaction) {
                 { label: 'Staff roles', value: (config.staffRoleIds || []).map((id) => `<@&${id}>`).join(', ') || '_none_' },
                 { label: 'Blocked words', value: `${words.length} configured (hidden)` }
             ],
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Thresholds live in config.yml; toggles, words, and exemptions per server.'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]

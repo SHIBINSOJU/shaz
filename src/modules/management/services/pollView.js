@@ -26,7 +26,7 @@ function buildPollPayload(poll) {
             ? `📊 ${total} vote${total === 1 ? '' : 's'} so far — ends ${formatTimestamp(poll.endsAt)}`
             : `📊 ${total} vote${total === 1 ? '' : 's'} so far`;
 
-    const container = new ContainerBuilder().setAccentColor(poll.closed ? 0x808080 : 0x5865F2);
+    const container = new ContainerBuilder().setAccentColor(poll.closed ? 0x808080 : BRAND_RED);
     container.addTextDisplayComponents(
         new TextDisplayBuilder().setContent(`## 📊 ${poll.question}`)
     );
@@ -54,5 +54,7 @@ function buildPollPayload(poll) {
 
     return { flags: MessageFlags.IsComponentsV2, components };
 }
+
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 module.exports = { buildPollPayload };

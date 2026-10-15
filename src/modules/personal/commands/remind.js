@@ -7,6 +7,8 @@ const { buildInfoContainer } = require('../../../utils/componentsV2');
 
 const MAX_ACTIVE = 10;
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('remind')
@@ -56,7 +58,7 @@ module.exports = {
                         { label: 'ID', value: `\`${created._id}\`` }
                     ],
                     footer: 'I will DM you. If your DMs are closed, I will ping you here instead.',
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
             });

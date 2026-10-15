@@ -10,6 +10,8 @@ const {
 } = require('discord.js');
 const { fail, formatTimestamp } = require('../services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('userinfo')
@@ -34,7 +36,7 @@ module.exports = {
                 ? roles.slice(0, 15).map(r => `${r}`).join(' ') + (roles.length > 15 ? ` *+${roles.length - 15} more*` : '')
                 : '_No roles_';
 
-            const container = new ContainerBuilder().setAccentColor(member?.displayHexColor !== '#000000' ? member.displayColor : 0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(member?.displayHexColor !== '#000000' ? member.displayColor : BRAND_RED);
             const section = new SectionBuilder().addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## 👤 ${target.tag}`)
             );

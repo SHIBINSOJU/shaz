@@ -15,6 +15,8 @@ const ANSWERS = [
     '🎱 Definitely not.'
 ];
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('8ball')
@@ -34,7 +36,7 @@ module.exports = {
                         { label: 'Question', value: question },
                         { label: 'Answer', value: answer }
                     ],
-                    accent: 0x5865F2
+                    accent: BRAND_RED
                 }),
                 flags: [MessageFlags.IsComponentsV2]
             });

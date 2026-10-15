@@ -12,6 +12,8 @@ const {
 const reminderRepository = require('../../../database/repositories/reminderRepository');
 const { fail, formatTimestamp } = require('../../utility/services/helpers');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('reminders')
@@ -30,7 +32,7 @@ module.exports = {
                 return;
             }
 
-            const container = new ContainerBuilder().setAccentColor(0x5865F2);
+            const container = new ContainerBuilder().setAccentColor(BRAND_RED);
             container.addTextDisplayComponents(
                 new TextDisplayBuilder().setContent(`## ⏰ Your reminders (${reminders.length})`)
             );

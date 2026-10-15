@@ -10,6 +10,8 @@ const { isDatabaseReady } = require('../../../database/connection');
 const { buildInfoContainer } = require('../../../utils/componentsV2');
 const { resolveAntiLinkConfig } = require('../config');
 
+const { BRAND_RED } = require('../../../utils/brandColor');
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('antilink')
@@ -187,7 +189,7 @@ async function showStatus(interaction) {
                         : '_none_'
                 }
             ],
-            accent: 0x5865F2,
+            accent: BRAND_RED,
             footer: 'Use /antilink channel disable #channel to add an exception.'
         }),
         flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]

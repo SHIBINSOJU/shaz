@@ -10,6 +10,7 @@ const logger = require('../../../core/logger');
 const guildSettingsRepository = require('../../../database/repositories/guildSettingsRepository');
 const { isDatabaseReady } = require('../../../database/connection');
 const { buildInfoContainer } = require('../../../utils/componentsV2');
+const { BRAND_RED } = require('../../../utils/brandColor');
 
 const CLEAR_TTL_MS = 5 * 60 * 1000;
 const clearSessions = new Map();
@@ -68,7 +69,7 @@ module.exports = {
                     ...buildInfoContainer({
                         header: 'Autorole clear cancelled',
                         fields: [{ label: 'Note', value: 'Configuration unchanged.' }],
-                        accent: 0x5865F2
+                        accent: BRAND_RED
                     }),
                     flags: [MessageFlags.IsComponentsV2, MessageFlags.Ephemeral]
                 });

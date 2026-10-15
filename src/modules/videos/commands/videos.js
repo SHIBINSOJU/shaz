@@ -2,7 +2,7 @@ const { SlashCommandBuilder, MessageFlags, PermissionFlagsBits } = require('disc
 const logger = require('../../../core/logger');
 const { getPromoConfig } = require('../services/promoConfig');
 const { checkCooldown, setCooldown, formatCooldown } = require('../services/rateLimit');
-const { parseYouTubeUrl, thumbnailFor, fetchVideoMetadata } = require('../services/youtube');
+const { parseYouTubeUrl, fetchVideoMetadata } = require('../services/youtube');
 const { buildPromoPayload } = require('../services/promoView');
 const videoPromotionRepository = require('../../../database/repositories/videoPromotionRepository');
 
@@ -150,11 +150,13 @@ module.exports = {
             const metadata = await fetchVideoMetadata(parsed.videoId, parsed.url, promo.youtubeApiKey);
 
             // 7. Build + publish (the bot posts; success is claimed only after send resolves).
+            // The custom RISE SMP banner is branding artwork — the YouTube
+            // URL stays the clickable destination.
             const payload = buildPromoPayload({
                 kind,
                 metadata,
                 videoUrl: parsed.url,
-                thumbnailUrl: thumbnailFor(parsed.videoId),
+                bannerUrl: promo.bannerUrl,
                 member: interaction.member
             });
             let message = null;

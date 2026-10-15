@@ -4,6 +4,14 @@
 # those same per-guild `welcome` overrides — it never introduces a second
 # welcome configuration.
 
+# Shared RISE NETWORK branding. `branding.accentColor` is the single source
+# of truth for bot-generated embed / container accent colors
+# (see src/utils/brandColor.js). Modules must import it instead of
+# hardcoding their own hex. Semantic colors (success/error/neutral) and
+# user- or role-derived colors are not branding and stay untouched.
+branding:
+  accentColor: "#E53935"   # RISE NETWORK red (decimal 15022645)
+
 welcome:
   enabled: true
   channelId: "1476620469288308861"          # Channel ID for welcome messages ("" = system channel fallback)
@@ -19,7 +27,7 @@ welcome:
                                  # compositing fails or gif.source is "url".
   separatorEnabled: true         # ➖ divider lines inside the welcome container (not part of the card image)
 
-  accentColor: "#5865F2"
+  accentColor: "#E53935"   # RISE NETWORK red (shared branding)
 
   # Animated welcome GIF (main visual of the welcome message).
   # 🖼️ This is the "thumbnail" the /welcome panel toggles: it governs the picture
@@ -249,11 +257,12 @@ youtube_promotion:
   cooldown_seconds: 300   # Per-user cooldown between promotions (0 = disabled)
   duplicate_cooldown_seconds: 1800  # Same member cannot re-promote the same video within this window (0 = disabled)
   youtube_api_key: ""     # Fallback only — prefer the YOUTUBE_API_KEY env var. Empty = oEmbed/ID fallback.
+  banner_url: "https://cdn.discordapp.com/attachments/1478552075469324389/1560015598514339850/IMG_7251.png?ex=6ad12d3e&is=6acfdbbe&hm=0e75236e9ec3ca9abfd30f6d9b76b45d9f884b046b3272dd097e959aece6aebf&"   # Custom RISE SMP promotional banner (branding artwork; the YouTube URL stays the click destination)
 
 minecraft:
   enabled: true          # Master switch for Minecraft module
   serverName: "RISE SMP"
-  accentColor: "#5865F2"
+  accentColor: "#E53935"   # RISE NETWORK red (shared branding)
 
   ipResponse:
     enabled: true        # DM the full IP panel when someone asks for the IP;
@@ -277,8 +286,8 @@ minecraft:
   # status message in `channelId` and edits it on every refresh (no spam).
   status:
     enabled: true        # Master switch for automatic monitoring + /mcstatus
-    channelId: "1556985640174886922"        # ONE configurable channel for the permanent status message ("" = no auto-post)
-    updateInterval: 60   # Seconds between automatic status refreshes (min 15s)
+    channelId: "1514647884828508263"        # ONE configurable channel for the permanent status message ("" = no auto-post)
+    updateInterval: 30   # Seconds between automatic status refreshes (min 15s)
     host: "risesmp.online" # Single RISE SMP server host
     port: 25890          # Single RISE SMP server port (displayed + queried)
     timeoutMs: 5000      # Per-query timeout before the server counts as offline
