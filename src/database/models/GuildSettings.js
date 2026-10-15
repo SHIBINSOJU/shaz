@@ -99,6 +99,12 @@ const guildSettingsSchema = new mongoose.Schema({
     management: {
         allowedRoleIds: { type: [String], default: [] }
     },
+    // Per-guild YouTube promotion overrides (`null` = inherit config.yml).
+    youtubePromotion: {
+        enabled: { type: Boolean, default: null },
+        channelId: { type: String, default: null },
+        allowedRoleId: { type: String, default: null }
+    },
     suggestions: {
         channelId: { type: String, default: null }
     },

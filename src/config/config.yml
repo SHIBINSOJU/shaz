@@ -242,6 +242,14 @@ reminders:
 afk:
   enabled: true          # Master switch for /afk
 
+youtube_promotion:
+  enabled: true
+  allowed_role_id: ""     # Role ID allowed to use /videos ("" = feature denies access until set)
+  channel_id: ""          # Promotion channel ID ("" = must be configured before use)
+  cooldown_seconds: 300   # Per-user cooldown between promotions (0 = disabled)
+  duplicate_cooldown_seconds: 1800  # Same member cannot re-promote the same video within this window (0 = disabled)
+  youtube_api_key: ""     # Fallback only — prefer the YOUTUBE_API_KEY env var. Empty = oEmbed/ID fallback.
+
 minecraft:
   enabled: true          # Master switch for Minecraft module
   serverName: "RISE SMP"
