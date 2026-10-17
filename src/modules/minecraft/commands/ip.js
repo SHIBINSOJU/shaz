@@ -1,8 +1,5 @@
-const { buildIpCommandData, executeIpCommand } = require('./serverip');
-
-// `/ip` is a second NAME for the same command, not a second implementation:
-// identical options, identical handler, identical ephemeral response path.
+const serverip = require('./serverip');
 module.exports = {
-    data: buildIpCommandData('ip'),
-    execute: executeIpCommand,
+    data: serverip.data.setName('ip'),
+    execute: serverip.execute
 };

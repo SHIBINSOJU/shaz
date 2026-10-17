@@ -85,7 +85,7 @@ function getStatusConfig() {
     const host = String(st.host || base.ipResponse.java.address || JAVA_DEFAULT_IP).trim() || JAVA_DEFAULT_IP;
     let port = Number(st.port);
     if (!(port > 0)) port = Number(st.javaPort);
-    if (!(port > 0)) port = Number(base.ipResponse.bedrock.port);
+    if (!(port > 0)) port = Number(base.ipResponse.java.port);
     if (!(port > 0)) port = Number(BEDROCK_DEFAULT_PORT);
 
     // updateInterval (seconds) wins; pollSeconds is the deprecated alias.
@@ -519,9 +519,12 @@ async function poll(reason = 'interval') {
     logger.info(`[MC STATUS] Checking ${cfg.display} (${reason})`);
     try {
         await ensureHydrated();
+        const baseCfg = getMinecraftConfig();
+        const bedrockHost = baseCfg.ipResponse.bedrock.address;
+        const bedrockPortVal = parseInt(baseCfg.ipResponse.bedrock.port) || 19132;
         const [java, bedrock] = await Promise.all([
             safeQueryJava(cfg.host, cfg.port, cfg.timeoutMs),
-            safeQueryBedrock(cfg.host, cfg.port, cfg.timeoutMs)
+            safeQueryBedrock(bedrockHost, bedrockPortVal, cfg.timeoutMs)
         ]);
         const at = Date.now();
         applyResult('java', java, at);
@@ -578,6 +581,7 @@ async function start(client = null) {
         return;
     }
     started = true;
+    try { await loadPersistentMinecraftConfig(); } catch (e) {}
     await ensureHydrated();
     // Adopt the configured channel immediately so a channel change takes effect.
     if (cfg.channelId) state.statusChannelId = state.statusChannelId || cfg.channelId;

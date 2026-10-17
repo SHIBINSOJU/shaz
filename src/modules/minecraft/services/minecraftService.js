@@ -6,10 +6,13 @@ const {
     ActionRowBuilder,
     ButtonBuilder,
     ButtonStyle,
-    MessageFlags
+    MessageFlags,
+    PermissionFlagsBits
 } = require('discord.js');
 const configService = require('../../../core/configService');
 const { BRAND_RED } = require('../../../utils/brandColor');
+const { isDatabaseReady } = require('../../../database/connection');
+const guildSettingsRepository = require('../../../database/repositories/guildSettingsRepository');
 
 // ---------------------------------------------------------------------------
 // Centralized Bedrock connection details — SINGLE source of truth.
@@ -20,7 +23,10 @@ const { BRAND_RED } = require('../../../utils/brandColor');
 // ---------------------------------------------------------------------------
 const BEDROCK_DEFAULT_IP = 'risesmp.online';
 const BEDROCK_DEFAULT_PORT = '25890';
+const JAVA_DEFAULT_PORT = 25565;
 const JAVA_DEFAULT_IP = 'risesmp.online';
+
+let persistentMinecraftConfig = null; // cached: {javaHost, javaPort, bedrockHost, bedrockPort}
 
 // In-memory cooldown tracker: key `${channelId}:${userId}` -> timestamp (ms)
 const lastTriggered = new Map();
@@ -125,6 +131,63 @@ async function editEphemeralResult(userId, components) {
     }
 }
 
+function isValidHostname(host) {
+    if (!host || typeof host !== 'string') return false;
+    const h = host.trim();
+    if (h.length < 1 || h.length > 255) return false;
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) {
+        return /^(25[0-5]|2[0-4]\d|[01]?\d\d?)(\.(25[0-5]|2[0-4]\d|[01]?\d\d?)){3}$/.test(h);
+    }
+    if (/^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$/.test(h)) return true;
+    if (/^localhost$/.test(h)) return true;
+    if (h.includes('[') && h.includes(']')) return true;
+    return false;
+}
+
+function isValidPort(port) {
+    if (port === null || port === undefined) return false;
+    const s = String(port).trim();
+    if (!/^\d+$/.test(s)) return false;
+    const n = parseInt(s);
+    return n >= 1 && n <= 65535;
+}
+
+function sanitizeHostname(host) {
+    if (!host || typeof host !== 'string') return '';
+    return host.trim();
+}
+
+async function loadPersistentMinecraftConfig() {
+    if (!isDatabaseReady()) {
+        if (!persistentMinecraftConfig) persistentMinecraftConfig = null;
+        return persistentMinecraftConfig;
+    }
+    try {
+        const s = await guildSettingsRepository.getGlobalMinecraftSettings();
+        if (s) {
+            persistentMinecraftConfig = {
+                javaHost: s.javaHost ?? null,
+                javaPort: s.javaPort ?? null,
+                bedrockHost: s.bedrockHost ?? null,
+                bedrockPort: s.bedrockPort ?? null
+            };
+        } else {
+            persistentMinecraftConfig = persistentMinecraftConfig || null;
+        }
+    } catch (e) {
+        // keep cached
+    }
+    return persistentMinecraftConfig;
+}
+
+function getPersistentMinecraftConfig() {
+    return persistentMinecraftConfig;
+}
+
+function setPersistentMinecraftConfig(next) {
+    persistentMinecraftConfig = next;
+}
+
 function getMinecraftConfig() {
     const raw = configService.get('minecraft', {}) || {};
     const ipResp = raw.ipResponse || raw.ip_response || {};
@@ -138,6 +201,23 @@ function getMinecraftConfig() {
         if (!isNaN(parsed)) accent = parsed;
     }
 
+    const defJavaHost = String(java.address || JAVA_DEFAULT_IP).trim() || JAVA_DEFAULT_IP;
+    const defJavaPort = isValidPort(java.port) ? parseInt(java.port) : JAVA_DEFAULT_PORT;
+    const defBedrockHost = String(bedrock.address || BEDROCK_DEFAULT_IP).trim() || BEDROCK_DEFAULT_IP;
+    const defBedrockPort = isValidPort(bedrock.port) ? String(bedrock.port).trim() : BEDROCK_DEFAULT_PORT;
+
+    const p = persistentMinecraftConfig;
+    let javaHost = defJavaHost;
+    let javaPort = defJavaPort;
+    let bedrockHost = defBedrockHost;
+    let bedrockPort = defBedrockPort;
+    if (p) {
+        if (isValidHostname(p.javaHost)) javaHost = sanitizeHostname(p.javaHost);
+        if (isValidPort(p.javaPort)) javaPort = parseInt(p.javaPort);
+        if (isValidHostname(p.bedrockHost)) bedrockHost = sanitizeHostname(p.bedrockHost);
+        if (isValidPort(p.bedrockPort)) bedrockPort = String(p.bedrockPort).trim();
+    }
+
     return {
         enabled: raw.enabled ?? true,
         serverName: raw.serverName || 'RISE SMP',
@@ -146,15 +226,12 @@ function getMinecraftConfig() {
             enabled: ipResp.enabled ?? true,
             cooldownSeconds: Number(ipResp.cooldownSeconds ?? ipResp.cooldown?.seconds ?? 5),
             java: {
-                // Java is displayed as a bare host — no port is read or shown.
-                address: String(java.address || JAVA_DEFAULT_IP).trim() || JAVA_DEFAULT_IP
+                address: javaHost,
+                port: javaPort
             },
             bedrock: {
-                // Centralized Bedrock defaults: IP risesmp.online, Port 25890.
-                address: String(bedrock.address || BEDROCK_DEFAULT_IP).trim() || BEDROCK_DEFAULT_IP,
-                port: bedrock.port !== undefined && bedrock.port !== null && String(bedrock.port).trim() !== ''
-                    ? String(bedrock.port).trim()
-                    : BEDROCK_DEFAULT_PORT
+                address: bedrockHost,
+                port: bedrockPort
             }
         }
     };
@@ -414,5 +491,12 @@ module.exports = {
     editEphemeralResult,
     BEDROCK_DEFAULT_IP,
     BEDROCK_DEFAULT_PORT,
-    JAVA_DEFAULT_IP
+    JAVA_DEFAULT_PORT,
+    JAVA_DEFAULT_IP,
+    loadPersistentMinecraftConfig,
+    getPersistentMinecraftConfig,
+    setPersistentMinecraftConfig,
+    isValidHostname,
+    isValidPort,
+    sanitizeHostname
 };

@@ -1,5 +1,5 @@
 const logger = require('../../../core/logger');
-const { getMinecraftConfig, detectIpQuery, buildIpDirectMessage, checkCooldown, alreadyProcessedMessage } = require('../services/minecraftService');
+const { getMinecraftConfig, detectIpQuery, buildIpDirectMessage, checkCooldown, alreadyProcessedMessage, loadPersistentMinecraftConfig } = require('../services/minecraftService');
 
 module.exports = {
     name: 'messageCreate',
@@ -14,6 +14,7 @@ module.exports = {
             // redelivers the same messageCreate event.
             if (alreadyProcessedMessage(message.id)) return;
 
+            try { await loadPersistentMinecraftConfig(); } catch (e) {}
             const config = getMinecraftConfig();
             if (!config.enabled || !config.ipResponse.enabled) return;
 

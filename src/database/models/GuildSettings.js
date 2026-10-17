@@ -119,6 +119,15 @@ const guildSettingsSchema = new mongoose.Schema({
         maxOpenTicketsPerUser: { type: Number, default: null },
         closedCategoryId: { type: String, default: null },
         deleteImmediately: { type: Boolean, default: null }
+    },
+    // Minecraft server connection configuration (Java + Bedrock, independent).
+    // null = inherit config.yml defaults. Stored per-guild but used as global
+    // source of truth by status/auto-responder (read via repository helper).
+    minecraft: {
+        javaHost: { type: String, default: null },
+        javaPort: { type: Number, default: null },
+        bedrockHost: { type: String, default: null },
+        bedrockPort: { type: Number, default: null }
     }
 }, { timestamps: true });
 

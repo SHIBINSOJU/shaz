@@ -1,5 +1,6 @@
 const logger = require('../../core/logger');
 const statusMonitor = require('./services/statusMonitor');
+const { loadPersistentMinecraftConfig } = require('./services/minecraftService');
 
 module.exports = {
     name: 'Minecraft',
@@ -20,6 +21,7 @@ module.exports = {
     // The ready client is passed through so the monitor can maintain the ONE
     // permanent status message (create once, edit in place).
     async initialize({ client } = {}) {
+        try { await loadPersistentMinecraftConfig(); } catch (e) {}
         const begin = (readyClient) => {
             statusMonitor.start(readyClient || client || null).catch((error) => {
                 logger.error(`Minecraft status monitor failed to start: ${error.message}`);
