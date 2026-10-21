@@ -114,10 +114,12 @@ function buildStatusAnnouncement({ status, serverName = 'RISE SMP', roleMention 
     return {
         flags: MessageFlags.IsComponentsV2,
         components: [container],
-        // Notify ONLY the intended role; never @everyone/@here. repliedUser is
-        // irrelevant here (we send via channel.send), but kept false defensively.
+        // Notify ONLY the intended role; never @everyone/@here.
+        // Discord rule: `parse` and a specific `roles` allow-list are mutually
+        // exclusive (50035 MESSAGE_ALLOWED_MENTIONS_PARSE_EXCLUSIVE), so when a
+        // role is present we send the ID allow-list alone.
         allowedMentions: roleMention
-            ? { roles: [roleMention.replace(/\D/g, '')], parse: ['roles'], repliedUser: false }
+            ? { roles: [roleMention.replace(/\D/g, '')] }
             : { parse: [], repliedUser: false }
     };
 }
