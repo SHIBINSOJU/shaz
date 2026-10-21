@@ -9,6 +9,7 @@ const { sendLog, isLogChannelMessage } = require('../services/logDispatcher');
 const { safeContent, fmtTimestamp, userLine, avatarUrlOf, truncate } = require('../services/logBuilders');
 const { fetchAuditEntry, executorLine } = require('../services/auditHelper');
 const messageCache = require('../services/messageCache');
+const { generateDeleteTranscript, generateBulkTranscript } = require('../services/deleteTranscript');
 
 function channelRef(channel) {
     if (!channel) return '_unknown channel_';
@@ -59,7 +60,6 @@ const messageDelete = {
             // Attribute a moderator only when the audit log proves a bulk/single delete.
             const entry = await fetchAuditEntry(guild, AuditLogEvent.MessageDelete, author?.id || null)
                 || await fetchAuditEntry(guild, AuditLogEvent.MessageBulkDelete, null);
-            const by = entry ? executorLine(entry) : null;
 
             const fields = [
                 { label: 'Author', value: author ? userLine(author) : '_unknown (uncached)_' },
@@ -73,7 +73,28 @@ const messageDelete = {
             if (att) fields.push({ label: 'Attachments', value: att });
             if (message.createdTimestamp) fields.push({ label: 'Sent', value: fmtTimestamp(message.createdTimestamp) });
             // Only claim moderator deletion when the audit log actually identified one.
-            if (by && entry?.extra?.channel?.id === message.channelId) fields.push({ label: 'Deleted by', value: by });
+            const modEntry = (entry && entry.extra?.channel?.id === message.channelId) ? entry : null;
+            if (modEntry) fields.push({ label: 'Deleted by', value: executorLine(modEntry) });
+
+            // Downloadable transcript file (author + their exact message), like a ticket archive.
+            const attList = attachments ? [...attachments.values()].slice(0, 10).map(a => ({ name: a.name, url: a.url })) : [];
+            const deletedBy = modEntry?.executor
+                ? `${modEntry.executor.tag || modEntry.executor.username} (${modEntry.executor.id})`
+                : null;
+            const file = generateDeleteTranscript({
+                guild,
+                channelLabel: message.channel?.name ? `#${message.channel.name}` : null,
+                channelId: message.channelId,
+                author: author
+                    ? { tag: author.tag || author.username, id: author.id, avatarUrl: avatarUrlOf(author), bot: Boolean(author.bot) }
+                    : null,
+                content,
+                hasAttachments: attList.length > 0,
+                attachments: attList,
+                sentAt: message.createdTimestamp,
+                deletedBy,
+                messageId: message.id
+            });
 
             await sendLog(guild, 'message', {
                 emoji: '🗑️',
@@ -82,7 +103,7 @@ const messageDelete = {
                 thumbnailUrl: author ? avatarUrlOf(author) : null,
                 fields,
                 footer: `Message ID: ${message.id} • Deleted: ${new Date().toISOString()}`
-            });
+            }, { file: file || undefined });
         } catch (error) {
             logger.error(`logs messageDelete failed: ${error.message}`);
         }
@@ -100,14 +121,42 @@ const messageDeleteBulk = {
             // Skip a bulk delete that only touched log channels.
             let logged = 0;
             const authors = new Map();
+            const records = [];
             for (const msg of messages.values()) {
                 if (String(msg.channelId) && await isLogChannelMessage(msg).catch(() => false)) continue;
                 if (msg.author?.id === msg.client?.user?.id) continue;
                 logged += 1;
-                if (msg.author) authors.set(msg.author.id, msg.author.tag || msg.author.id);
+
+                // Bulk events usually arrive uncached — recover content from the
+                // messageCache (fed by messageCreate). Never invent text.
+                const cached = messageCache.recall(msg.id);
+                let author = msg.author
+                    ? { tag: msg.author.tag || msg.author.username, id: msg.author.id, bot: Boolean(msg.author.bot) }
+                    : null;
+                let content = typeof msg.content === 'string' && msg.content ? msg.content : null;
+                const sentAt = msg.createdTimestamp || null;
+                const attCount = msg.attachments?.size || cached?.attachments || 0;
+
+                if (cached && String(cached.guildId) === String(msg.guildId)) {
+                    if (!content) content = cached.content || null;
+                    if (!author && cached.authorId) {
+                        author = { tag: cached.authorTag || cached.authorId, id: cached.authorId, bot: false };
+                    }
+                }
+
+                if (author) authors.set(author.id, author.tag || author.id);
+                records.push({
+                    author, content,
+                    hasAttachments: attCount > 0,
+                    attachments: [...(msg.attachments?.values() || [])].slice(0, 5).map(a => ({ name: a.name, url: a.url })),
+                    sentAt, messageId: msg.id
+                });
                 messageCache.forget(msg.id);
             }
             if (logged === 0) return;
+
+            // Oldest-first for a readable archive.
+            records.sort((a, b) => (a.sentAt || 0) - (b.sentAt || 0));
 
             const channel = first.channel;
             const entry = await fetchAuditEntry(guild, AuditLogEvent.MessageBulkDelete, null);
@@ -125,6 +174,19 @@ const messageDeleteBulk = {
             }
             if (by) fields.push({ label: 'Deleted by', value: by });
 
+            // Downloadable transcript of every purged message (author + content).
+            const deletedBy = entry?.executor
+                ? `${entry.executor.tag || entry.executor.username} (${entry.executor.id})`
+                : null;
+            const file = generateBulkTranscript({
+                guild,
+                channelLabel: channel?.name ? `#${channel.name}` : null,
+                channelId: first.channelId,
+                count: logged,
+                deletedBy,
+                messages: records
+            });
+
             await sendLog(guild, 'message', {
                 emoji: '🧹',
                 title: 'Bulk Messages Deleted',
@@ -132,7 +194,7 @@ const messageDeleteBulk = {
                 thumbnailUrl: null,
                 fields,
                 footer: `${new Date().toISOString()}`
-            }, { dedupKey: `bulk:${guild.id}:${first.channelId}:${Date.now() >> 13}` });
+            }, { dedupKey: `bulk:${guild.id}:${first.channelId}:${Date.now() >> 13}`, file: file || undefined });
         } catch (error) {
             logger.error(`logs messageDeleteBulk failed: ${error.message}`);
         }

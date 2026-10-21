@@ -7,7 +7,8 @@ module.exports = {
     commands: [
         require('./commands/serverip'),
         require('./commands/ip'),
-        require('./commands/mcstatus')
+        require('./commands/mcstatus'),
+        require('./commands/serverstatus')
     ],
     events: [
         require('./events/messageCreate')

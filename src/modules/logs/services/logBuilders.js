@@ -8,7 +8,8 @@ const {
     SeparatorBuilder,
     SeparatorSpacingSize,
     SectionBuilder,
-    ThumbnailBuilder
+    ThumbnailBuilder,
+    FileBuilder
 } = require('discord.js');
 
 const MAX_FIELD_VALUE = 1000;
@@ -57,10 +58,12 @@ function avatarUrlOf(user) {
 
 /**
  * Build a public Components V2 log payload.
- * opts: { emoji, title, accent, thumbnailUrl, fields: [{label, value}], footer }
+ * opts: { emoji, title, accent, thumbnailUrl, fields: [{label, value}], footer, fileName }
  * Fields with empty values are dropped. Values are truncated safely.
+ * `fileName` must match an attachment passed via sendLog's `file` option; a
+ * FileComponent is added so the uploaded transcript actually renders.
  */
-function buildLogMessage({ emoji = '📋', title = 'Log', accent = BRAND_RED, thumbnailUrl = null, fields = [], footer = null }) {
+function buildLogMessage({ emoji = '📋', title = 'Log', accent = BRAND_RED, thumbnailUrl = null, fields = [], footer = null, fileName = null }) {
     const container = new ContainerBuilder();
     if (accent !== null && accent !== undefined) container.setAccentColor(accent);
 
@@ -94,6 +97,11 @@ function buildLogMessage({ emoji = '📋', title = 'Log', accent = BRAND_RED, th
             new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small)
         );
         container.addTextDisplayComponents(new TextDisplayBuilder().setContent(`-# ${truncate(String(footer), 300)}`));
+    }
+
+    // Reference the uploaded transcript so Components V2 renders the file.
+    if (fileName) {
+        container.addFileComponents(new FileBuilder().setURL(`attachment://${String(fileName)}`));
     }
 
     return { components: [container] };

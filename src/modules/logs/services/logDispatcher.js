@@ -52,7 +52,9 @@ async function resolveDestination(guild, category) {
 /**
  * Send a Components V2 log entry to a category channel.
  * build: { emoji, title, accent, thumbnailUrl, fields, footer }
- * opts: { dedupKey } — when provided, identical keys within the window are dropped.
+ * opts: { dedupKey, file } — `file` is { name, buffer }; when present it is
+ * uploaded and referenced as a transcript attachment. `dedupKey` drops
+ * identical keys within the window.
  */
 async function sendLog(guild, category, build, opts = {}) {
     try {
@@ -92,13 +94,19 @@ async function sendLog(guild, category, build, opts = {}) {
         }
 
         const { buildLogMessage } = require('./logBuilders');
-        const payload = buildLogMessage(build);
+        const fileName = opts.file?.name ? String(opts.file.name) : null;
+        const payload = buildLogMessage({ ...build, fileName });
 
-        await withRetry(() => channel.send({
+        const sendOpts = {
             ...payload,
             flags: MessageFlags.IsComponentsV2,
             allowedMentions: { parse: [] }
-        }), { attempts: 2 });
+        };
+        if (fileName && opts.file.buffer) {
+            sendOpts.files = [{ attachment: opts.file.buffer, name: fileName }];
+        }
+
+        await withRetry(() => channel.send(sendOpts), { attempts: 2 });
         return true;
     } catch (error) {
         logger.error(`Server log send failed [${category}]: ${error.message}`);

@@ -295,3 +295,8 @@ minecraft:
     pollSeconds: 60      # Deprecated alias of `updateInterval` (kept for backward compat)
     minRefreshSeconds: 15 # Min gap for manual 🔄 Refresh (anti-spam)
 
+  # /serverstatus manual status announcements (Components V2).
+  # The role pinged when the command omits a role. "" = no default ping.
+  announcements:
+    defaultRoleId: "1505572426946314280"
+
