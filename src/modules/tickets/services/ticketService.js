@@ -107,6 +107,24 @@ function validateReason(reason) {
     return { ok: true, value: text };
 }
 
+// Optional identity fields from the opening modal. Empty input is stored as
+// null so the welcome message / logs / transcript simply omit the line.
+function optionalPlainText(value, max = 100) {
+    const text = String(value ?? '').trim();
+    return text ? safePlainText(text, max) : null;
+}
+
+// Normalize the optional Java/Bedrock answer: recognized values collapse to a
+// canonical label, anything else is kept as sanitized plain text.
+function normalizePlatform(value) {
+    const text = String(value ?? '').trim();
+    if (!text) return null;
+    const lower = text.toLowerCase();
+    if (lower.includes('bedrock') || lower === 'be') return 'Bedrock';
+    if (lower.includes('java') || lower === 'je') return 'Java';
+    return safePlainText(text, 32);
+}
+
 function isStaffForTicket(member, ticket) {
     if (!member) return false;
     if (member.permissions.has(PermissionFlagsBits.Administrator)) return true;
@@ -157,12 +175,16 @@ function canClaimTicket({ member, ticket, guild }) {
  * removed so no orphan channels (and no partial DB records) remain.
  * Returns { ok: true, ticket, channel } or { ok: false, error }.
  */
-async function createTicket({ client, guild, member, categoryKey, reason, config }) {
+async function createTicket({ client, guild, member, categoryKey, reason, inGameName, platform, config }) {
     const category = getCategory(config, categoryKey);
     if (!category) return { ok: false, error: '❌ That ticket category no longer exists.' };
 
     const reasonCheck = validateReason(reason);
     if (!reasonCheck.ok) return { ok: false, error: reasonCheck.error };
+
+    // Optional fields — sanitized plain text, null when left empty.
+    const inGameNameValue = optionalPlainText(inGameName, 64);
+    const platformValue = normalizePlatform(platform);
 
     if (!isDatabaseReady()) {
         return { ok: false, error: '❌ The database is not connected, so tickets cannot be tracked right now. Please try again later.' };
@@ -264,6 +286,8 @@ async function createTicket({ client, guild, member, categoryKey, reason, config
             creatorDisplayName: safePlainText(member.displayName || member.user?.username, 100),
             category: categoryKey,
             reason: reasonCheck.value,
+            inGameName: inGameNameValue,
+            platform: platformValue,
             staffRoleIds: staffRoles.map((r) => r.id),
             status: 'open'
         });
@@ -302,7 +326,9 @@ async function createTicket({ client, guild, member, categoryKey, reason, config
                 { label: 'Creator', value: creatorName },
                 { label: 'User ID', value: String(userId) },
                 { label: 'Created', value: discordTimestamp(new Date()) },
-                { label: 'Reason', value: safePlainText(reasonCheck.value, 1000) }
+                { label: 'Reason', value: safePlainText(reasonCheck.value, 1000) },
+                ...(inGameNameValue ? [{ label: 'In-Game Name', value: inGameNameValue }] : []),
+                ...(platformValue ? [{ label: 'Platform', value: platformValue }] : [])
             ]
         });
 

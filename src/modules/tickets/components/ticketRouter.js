@@ -163,6 +163,23 @@ async function handleSelect(interaction) {
     const modal = new ModalBuilder()
         .setCustomId(`ticket:modal:reason:${interaction.customId.split(':')[2]}:${categoryKey}`)
         .setTitle(`Open Ticket — ${category.name}`.slice(0, 45));
+
+    // Optional context fields (never required): the single required "reason"
+    // input stays, while users may add their in-game identity.
+    const inGameNameInput = new TextInputBuilder()
+        .setCustomId('ign')
+        .setLabel('In-game name (optional)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false)
+        .setMaxLength(64)
+        .setPlaceholder('Your Minecraft username');
+    const platformInput = new TextInputBuilder()
+        .setCustomId('platform')
+        .setLabel('Platform — Java / Bedrock (optional)')
+        .setStyle(TextInputStyle.Short)
+        .setRequired(false)
+        .setMaxLength(32)
+        .setPlaceholder('Java or Bedrock');
     const reasonInput = new TextInputBuilder()
         .setCustomId('reason')
         .setLabel('Reason for opening this ticket')
@@ -171,7 +188,12 @@ async function handleSelect(interaction) {
         .setMinLength(REASON_MIN)
         .setMaxLength(REASON_MAX)
         .setPlaceholder('Explain why you need support...');
-    modal.addComponents(new ActionRowBuilder().addComponents(reasonInput));
+
+    modal.addComponents(
+        new ActionRowBuilder().addComponents(inGameNameInput),
+        new ActionRowBuilder().addComponents(platformInput),
+        new ActionRowBuilder().addComponents(reasonInput)
+    );
     try {
         await interaction.showModal(modal);
     } catch (error) {

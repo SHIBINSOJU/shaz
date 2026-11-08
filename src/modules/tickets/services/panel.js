@@ -93,6 +93,9 @@ function buildTicketOpen(ticket, category) {
     const welcome = category?.welcomeMessage
         ? sanitizeMessageInput(category.welcomeMessage, 1000)
         : '';
+    // Optional identity captured in the opening modal (plain text, never a ping).
+    const inGameName = ticket.inGameName ? safePlainText(ticket.inGameName, 64) : '';
+    const platform = ticket.platform ? safePlainText(ticket.platform, 32) : '';
 
     const lines = [
         `Welcome <@${ticket.userId}>!`,
@@ -102,6 +105,8 @@ function buildTicketOpen(ticket, category) {
         `**Reason:**\n${reason}`,
         ''
     ];
+    if (inGameName) lines.push(`**In-Game Name:** ${inGameName}\n`);
+    if (platform) lines.push(`**Platform:** ${platform}\n`);
     if (welcome) lines.push(`${welcome}\n`);
     // Plain-text staff lines — usernames from stored snapshots, never <@id>,
     // so claim/close updates never generate notifications.

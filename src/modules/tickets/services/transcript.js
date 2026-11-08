@@ -125,6 +125,8 @@ function buildTranscriptHTML({ guild, ticket, categoryName, channelName, message
     const closedByName = closedBy ? escapeHtml(closedBy.displayName || closedBy.username) : '—';
     const closedById = closedBy ? escapeHtml(closedBy.id) : '—';
     const reasonText = escapeHtml(reason || ticket.closeReason || ticket.deleteReason || ticket.reason || '—');
+    const inGameName = ticket.inGameName ? escapeHtml(ticket.inGameName) : '';
+    const platform = ticket.platform ? escapeHtml(ticket.platform) : '';
     const guildName = escapeHtml(guild?.name || 'Discord Server');
     const guildIcon = guild?.iconURL?.({ size: 128 }) || '';
 
@@ -234,6 +236,8 @@ a{color:#00a8fc}
 <div class="meta"><div class="k">Ticket</div><div class="v">#${ticketLabel}</div></div>
 <div class="meta"><div class="k">Ticket ID</div><div class="v">#${ticket.number}</div></div>
 <div class="meta"><div class="k">Category</div><div class="v">${category}</div></div>
+${inGameName ? `<div class="meta"><div class="k">In-Game Name</div><div class="v">${inGameName}</div></div>` : ''}
+${platform ? `<div class="meta"><div class="k">Platform</div><div class="v">${platform}</div></div>` : ''}
 <div class="meta"><div class="k">Creator</div><div class="v">${creatorName}<br><span style="color:#949ba4">User ID: ${creatorId}</span></div></div>
 <div class="meta"><div class="k">Created</div><div class="v">${escapeHtml(createdLong)}</div></div>
 <div class="meta"><div class="k">Messages</div><div class="v">${messages.length}</div></div>

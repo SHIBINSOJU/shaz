@@ -13,6 +13,9 @@ const ticketSchema = new mongoose.Schema({
     creatorDisplayName: { type: String, default: null },
     category: { type: String, required: true },
     reason: { type: String, required: true, maxlength: 1000 },
+    // Optional identity captured in the opening modal (null when omitted).
+    inGameName: { type: String, default: null },
+    platform: { type: String, default: null },
     staffRoleIds: { type: [String], default: [] },
     claimedBy: { type: String, default: null },
     claimedByUsername: { type: String, default: null },

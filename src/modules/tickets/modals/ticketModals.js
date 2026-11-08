@@ -35,6 +35,8 @@ module.exports = {
             }
 
             const reason = safeField(interaction, 'reason');
+            const inGameName = safeField(interaction, 'ign');
+            const platform = safeField(interaction, 'platform');
             const config = await resolveTicketsConfig(interaction.guild);
             const result = await createTicket({
                 client: interaction.client,
@@ -42,6 +44,8 @@ module.exports = {
                 member: interaction.member,
                 categoryKey,
                 reason,
+                inGameName,
+                platform,
                 config
             });
 

@@ -107,7 +107,6 @@ class WelcomeBuilder {
 
         if (card) {
             nameInCard = true;
-            files.push(new AttachmentBuilder(card, { name: 'welcome-card.gif' }));
             container.addMediaGalleryComponents(
                 new MediaGalleryBuilder().addItems(
                     new MediaGalleryItemBuilder().setURL('attachment://welcome-card.gif')
@@ -121,7 +120,6 @@ class WelcomeBuilder {
                         new MediaGalleryItemBuilder().setURL(media.url)
                     )
                 );
-                files.push(...media.files);
             } else if (config.image?.enabled && config.image?.url) {
                 container.addMediaGalleryComponents(
                     new MediaGalleryBuilder().addItems(
